@@ -2,7 +2,7 @@
 
 **AIScout** è un'applicazione web avanzata per lo scouting calcistico che utilizza il Machine Learning per identificare talenti, trovare giocatori simili e analizzare profili statistici complessi.
 
-Originariamente sviluppata come applicazione desktop, è stata migrata in una Web App moderna basata su **Dash** e pronta per il deploy in cloud (es. Render.com).
+Originariamente sviluppata come applicazione desktop, è stata migrata in una Web App moderna basata su **Dash**.
 
 ---
 
