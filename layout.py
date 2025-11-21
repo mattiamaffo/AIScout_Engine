@@ -368,16 +368,6 @@ def create_main_layout():
             # --- NUOVO: Componente per il Download CSV ---
             dcc.Download(id="download-dataframe-csv"),
 
-
-            # --- Tasto Fullscreen Toggle (Posizionato in alto a destra) ---
-            html.Button(
-                html.I(className="fas fa-compress"), 
-                id='btn-fullscreen-toggle', 
-                n_clicks=0, 
-                className='btn-window-control', 
-                title="Esci da Schermo Intero"
-            ),
-
             html.Img(id='app-logo', src='/assets/FullLogo_Transparent.png'),
             html.P("Trova, confronta e scopri talenti calcistici in pochi click!", id='app-subtitle', className='app-subtitle'),
             

@@ -1267,16 +1267,6 @@ def update_database_table(name_value, pos_value, role_value, age_min_value, age_
 
     return rows_children, page_info, pagination_data
 
-# --- Callback: Toggle Fullscreen (Disabilitato per Web App) ---
-@app.callback(
-    Output('btn-fullscreen-toggle', 'style'),
-    Input('btn-fullscreen-toggle', 'n_clicks'),
-    prevent_initial_call=True
-)
-def toggle_fullscreen(n_clicks):
-    # Nascondi il bottone fullscreen in web mode
-    return {'display': 'none'}
-
 # 4. --- Esecuzione Server ---
 if __name__ == '__main__':
     app.run(debug=True, port=8050)
