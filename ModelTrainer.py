@@ -1,6 +1,6 @@
 import pandas as pd # type: ignore
 import numpy as np # type: ignore
-from sklearn.preprocessing import StandardScaler, OneHotEncoder # type: ignore
+from sklearn.preprocessing import StandardScaler # type: ignore
 from sklearn.decomposition import PCA # type: ignore
 from sklearn.neighbors import NearestNeighbors # type: ignore
 from typing import Dict, List, Tuple
@@ -11,8 +11,19 @@ import sys
 from pathlib import Path
 from sklearn.cluster import KMeans # type: ignore
 
-# --- Configurazione Percorsi ---
-BASE_DIR = Path(__file__).resolve().parent
+# --- Funzione per gestire i percorsi sia in Dev che in .Exe ---
+def get_base_path():
+    """
+    Restituisce il percorso base corretto.
+    Se siamo in un eseguibile PyInstaller, usa sys._MEIPASS.
+    Se siamo in sviluppo locale, usa la cartella corrente del file.
+    """
+    if getattr(sys, 'frozen', False):
+        # Se siamo compilati in un .exe
+        return Path(sys._MEIPASS)
+    else:
+        # Se stiamo eseguendo lo script python normalmente
+        return Path(__file__).resolve().parent
 
 # --- Importazioni dal Progetto ---
 import config
@@ -35,6 +46,10 @@ class ModelTrainer:
         self.dataframes_x90 = dataframes_x90
         # Definiamo i metadati da escludere (Rk è l'indice, quindi non è nelle colonne)
         self.metadata_to_exclude = [col for col in metadata_cols if col != 'Rk']
+        # Aggiungiamo esplicitamente Ht. e Wt. ai metadati da escludere dallo scaling
+        for col in ['Ht.', 'Wt.']:
+            if col not in self.metadata_to_exclude:
+                self.metadata_to_exclude.append(col)
         
         # Attributi per salvare i risultati del training
         self.scaled_dataframes = {}
@@ -47,8 +62,6 @@ class ModelTrainer:
         self.pcas = {}
         self.knn_models = {}
 
-        # One-Hot Encoders per ruolo (per Nation, Team, Comp)
-        self.ohe_encoders = {}
         # Lista ordinata delle colonne finali delle feature per ogni ruolo
         self.feature_columns = {}
 
@@ -72,15 +85,14 @@ class ModelTrainer:
             # 1. PRESERVA Nation, Team, Comp come SOLO metadati (non usati nel training)
             # STRATEGIA: La similarità sarà basata SOLO su caratteristiche di gioco
             # L'utente può filtrare i risultati per Nation/Comp DOPO la ricerca nell'UI
-            categorical_metadata = ['Nation', 'Team', 'Comp']
+            categorical_metadata = ['Nation', 'Team', 'Comp', 'Ht.', 'Wt.']
             cat_metadata_cols = [c for c in categorical_metadata if c in df.columns]
             cat_metadata = df[cat_metadata_cols].copy() if cat_metadata_cols else pd.DataFrame()
             
             # Non facciamo più One-Hot Encoding per nessuna variabile categorica
             # Questo elimina completamente il bias geografico/di campionato
-            ohe_info = {}  # Vuoto - nessun encoder necessario
             
-            # 2. Identifica le colonne numeriche da scalare (ora includono le OHE appena create)
+            # 2. Identifica le colonne numeriche da scalare
             feature_cols = [
                 col for col in df.columns 
                 if col not in self.metadata_to_exclude and col not in ['Ruolo_Primario', '90s']
@@ -92,9 +104,6 @@ class ModelTrainer:
                 print(f"   -> Attenzione: Nessuna colonna di feature trovata da scalare per {ruolo}.")
                 self.scaled_dataframes[ruolo] = df
                 self.scalers[ruolo] = scaler
-                # salva comunque encoders e feature column info
-                if ohe_info:
-                    self.ohe_encoders[ruolo] = ohe_info
                 self.feature_columns[ruolo] = []
                 continue
 
@@ -125,9 +134,6 @@ class ModelTrainer:
             # 6. Salva i risultati negli attributi della classe
             self.scaled_dataframes[ruolo] = df_scaled
             self.scalers[ruolo] = scaler
-            # Salva anche gli encoders e la lista ordinata di colonne feature
-            if ohe_info:
-                self.ohe_encoders[ruolo] = ohe_info
 
             self.feature_columns[ruolo] = feature_cols
             print(f"   -> Scaling per {ruolo} completato. Scaler salvato.")
@@ -321,8 +327,7 @@ class ModelTrainer:
         joblib.dump(self.pcas, output_path / "pcas.joblib")
         joblib.dump(self.kmeans_models, output_path / "kmeans_models.joblib") # <-- Salva K-Means
         joblib.dump(self.knn_models, output_path / "knn_models.joblib") # <-- Salva i k-NN annidati
-        # Salva i One-Hot Encoders (se presenti) e la lista delle colonne di feature per ruolo
-        joblib.dump(self.ohe_encoders, output_path / "ohe_encoders.joblib")
+        # Salva la lista delle colonne di feature per ruolo
         joblib.dump(self.feature_columns, output_path / "feature_columns.joblib")
         
         # Salva i dati PCA (che ora includono la colonna 'Cluster')
@@ -411,12 +416,16 @@ def plot_elbow_method(inertia_values: List[float], k_range: range, ruolo: str, o
 
 if __name__ == "__main__":
     
-    print("--- ESECUZIONE: ADDESTRAMENTO FINALE (con nuovi 'k') ---")
+    print("--- ESECUZIONE: ADDESTRAMENTO FINALE (con NUOVO Dataset Unificato) ---")
+    
+    # Percorso del nuovo dataset unificato
+    base_dir = Path(__file__).resolve().parent.parent
+    new_dataset_path = base_dir / 'data' / 'dataset_master_unified_2526.csv'
+    print(f"Usando dataset: {new_dataset_path}")
     
     # 1. Carica i dati (usando PlayerDataPreprocessor)
     processor = PlayerDataPreprocessor(
-            master_file_path=config.MASTER_CSV_PATH_FINAL, 
-            min_minutes=config.MIN_MINUTES,
+            master_file_path=str(new_dataset_path), 
             ruoli=config.RUOLI,
             metadata_cols=config.METADATA_COLS,
             role_features=config.ROLE_FEATURES,

@@ -6,8 +6,19 @@ from pathlib import Path
 from typing import Dict, List, Any, Tuple
 from config import CLUSTER_NAMES_MAP
 
-# --- Configurazione Percorsi ---
-BASE_DIR = Path(__file__).resolve().parent
+# --- Funzione per gestire i percorsi sia in Dev che in .Exe ---
+def get_base_path():
+    """
+    Restituisce il percorso base corretto.
+    Se siamo in un eseguibile PyInstaller, usa sys._MEIPASS.
+    Se siamo in sviluppo locale, usa la cartella corrente del file.
+    """
+    if getattr(sys, 'frozen', False):
+        # Se siamo compilati in un .exe
+        return Path(sys._MEIPASS)
+    else:
+        # Se stiamo eseguendo lo script python normalmente
+        return Path(__file__).resolve().parent
 
 class SimilarityEngine:
     """
@@ -32,7 +43,6 @@ class SimilarityEngine:
         self.kmeans_models = {}
         self.knn_models = {}
         self.pca_dataframes = {}
-        self.ohe_encoders = {}
         self.feature_columns = {}
         self.cluster_names = CLUSTER_NAMES_MAP
         
@@ -88,10 +98,6 @@ class SimilarityEngine:
                 progress_callback(95, "Caricamento Dataframes PCA...")
             self.pca_dataframes = joblib.load(self.artifacts_dir / "pca_dataframes.joblib")
             
-            try:
-                self.ohe_encoders = joblib.load(self.artifacts_dir / "ohe_encoders.joblib")
-            except Exception:
-                self.ohe_encoders = {}
             try:
                 self.feature_columns = joblib.load(self.artifacts_dir / "feature_columns.joblib")
             except Exception:
@@ -251,7 +257,7 @@ class SimilarityEngine:
             )
             
             # 7. Formatta output (Includendo PC1, PC2, PC3 per i vicini)
-            output_cols = ['Player', 'Comp', 'Team', 'Similarita (Distanza)', 'Valore_Mercato', 'PC1', 'PC2', 'PC3']
+            output_cols = ['Player', 'Ht.', 'Wt.', 'Comp', 'Team', 'Similarita (Distanza)', 'Valore_Mercato', 'PC1', 'PC2', 'PC3']
             final_cols = [col for col in output_cols if col in top_k_df.columns]
             
             final_df = top_k_df[final_cols].reset_index()
@@ -394,7 +400,7 @@ class SimilarityEngine:
             top_k_df = results_df.head(k).copy()
             top_k_df['Stile di Gioco'] = top_k_df['Cluster'].apply(lambda x: self._get_style_name(ruolo, int(x)))
 
-            output_cols = ['Player', 'Comp', 'Team', 'Similarita (Distanza)', 'Valore_Mercato', 'PC1', 'PC2', 'PC3']
+            output_cols = ['Player', 'Ht.', 'Wt.', 'Comp', 'Team', 'Similarita (Distanza)', 'Valore_Mercato', 'PC1', 'PC2', 'PC3']
             final_cols = [col for col in output_cols if col in top_k_df.columns]
             final_df = top_k_df[final_cols].reset_index()
             final_df = final_df.rename(columns={'index': 'ID_Univoco'})
@@ -522,7 +528,7 @@ class SimilarityEngine:
                 lambda x: self._get_style_name(ruolo, int(x))
             )
             
-            output_cols = ['Player', 'Comp', 'Team', 'Similarita (Distanza)', 'Valore_Mercato', 'PC1', 'PC2', 'PC3']
+            output_cols = ['Player', 'Ht.', 'Wt.', 'Comp', 'Team', 'Similarita (Distanza)', 'Valore_Mercato', 'PC1', 'PC2', 'PC3']
             final_cols = [col for col in output_cols if col in top_k_df.columns]
             final_df = top_k_df[final_cols].reset_index()
             final_df = final_df.rename(columns={'index': 'ID_Univoco'})
@@ -644,7 +650,7 @@ class SimilarityEngine:
             if 'PC3' in top_k_df.columns and len(top_k_df) > 0:
                 target_coords['PC3'] = float(top_k_df['PC3'].mean())
             
-            output_cols = ['Player', 'Comp', 'Team', 'Similarita (Distanza)', 'Valore_Mercato', 'PC1', 'PC2', 'PC3', 'Role']
+            output_cols = ['Player', 'Ht.', 'Wt.', 'Comp', 'Team', 'Similarita (Distanza)', 'Valore_Mercato', 'PC1', 'PC2', 'PC3', 'Role']
             final_cols = [col for col in output_cols if col in top_k_df.columns]
             final_df = top_k_df[final_cols].reset_index()
             final_df = final_df.rename(columns={'index': 'ID_Univoco'})
@@ -722,7 +728,7 @@ class SimilarityEngine:
                 )
                 
                 # ... (Creazione final_df invariata) ...
-                output_cols = ['Player', 'Comp', 'Team', 'Similarita (Distanza)', 'Valore_Mercato']
+                output_cols = ['Player', 'Ht.', 'Wt.', 'Comp', 'Team', 'Similarita (Distanza)', 'Valore_Mercato']
                 final_cols = [col for col in output_cols if col in top_k_df.columns]
                 final_df = top_k_df[final_cols].reset_index()
                 final_df = final_df.rename(columns={'index': 'ID_Univoco'})
@@ -761,7 +767,7 @@ if __name__ == "__main__":
         
         # --- TEST 1: Ricerca Specifica (Sostituisci con un nome reale) ---
         print("\n" + "="*30 + " TEST 1 (Attaccante) " + "="*30)
-        target_player_1 = "Tammy Abraham" # <<< MODIFICA QUI
+        target_player_1 = "Mohamed Salah" # <<< MODIFICA QUI
         
         similar_players_1, role_1 = engine.find_similar_players(target_player_1, k=10)
         

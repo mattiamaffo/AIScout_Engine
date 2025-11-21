@@ -7,8 +7,19 @@ from pathlib import Path
 import unicodedata
 import re
 
-# --- Configurazione Percorsi ---
-BASE_DIR = Path(__file__).resolve().parent
+# --- Funzione per gestire i percorsi sia in Dev che in .Exe ---
+def get_base_path():
+    """
+    Restituisce il percorso base corretto.
+    Se siamo in un eseguibile PyInstaller, usa sys._MEIPASS.
+    Se siamo in sviluppo locale, usa la cartella corrente del file.
+    """
+    if getattr(sys, 'frozen', False):
+        # Se siamo compilati in un .exe
+        return Path(sys._MEIPASS)
+    else:
+        # Se stiamo eseguendo lo script python normalmente
+        return Path(__file__).resolve().parent
 
 # --- Configurazione Pandas ---
 pd.set_option('display.max_rows', 10)
@@ -23,16 +34,22 @@ class PlayerDataPreprocessor:
     suddividendo i dati per ruolo e convertendo le statistiche in metriche per 90 minuti (x90).
     """
 
-    def __init__(self, master_file_path: str, # <-- Modificato
-                 min_minutes: int, ruoli: List[str], 
+    def __init__(self, master_file_path: str, 
+                 ruoli: List[str], 
                  metadata_cols: List[str], role_features: Dict[str, List[str]], 
                  percentage_cols: List[str], filter_col: List[str]):
         
         # --- ATTRIBUTI MODIFICATI ---
         self.MASTER_FILE_PATH = master_file_path # <-- Unico file
-        self.MIN_MINUTES = min_minutes
+        # self.MIN_MINUTES rimosso perché il dataset è già filtrato
         self.RUOLI = ruoli
+        
+        # Aggiungiamo Ht. e Wt. ai metadati se non ci sono già
         self.METADATA_COLS = metadata_cols
+        for col in ['Ht.', 'Wt.']:
+            if col not in self.METADATA_COLS:
+                self.METADATA_COLS.append(col)
+                
         self.ROLE_FEATURES = role_features
         self.PERCENTAGE_COLS = percentage_cols
         self.FILTER_COL = filter_col
@@ -45,8 +62,8 @@ class PlayerDataPreprocessor:
         """
         
         # 1. Identifica le colonne che DEVONO essere numeriche
-        # Escludiamo le colonne di testo, inclusa la nuova 'Valore_Mercato'
-        text_cols = ['Rk', 'Player', 'Nation', 'Pos', 'Team', 'Comp', 'Valore_Mercato']
+        # Escludiamo le colonne di testo e i metadati fisici (Ht., Wt.) che possono essere "ND"
+        text_cols = ['Rk', 'Player', 'Nation', 'Pos', 'Team', 'Comp', 'Valore_Mercato', 'Ht.', 'Wt.']
         
         numeric_cols_to_check = [col for col in self.METADATA_COLS if col not in text_cols]
         numeric_cols_to_check.extend(self.FILTER_COL) 
@@ -109,7 +126,7 @@ class PlayerDataPreprocessor:
     
 
     def _clean_and_filter(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Applica l'ID univoco, il filtro sul minutaggio e rimuove le colonne di servizio."""
+        """Applica l'ID univoco e rimuove le colonne di servizio."""
         
         print("\n--- Fase di Pulizia Generale ---")
         
@@ -118,9 +135,10 @@ class PlayerDataPreprocessor:
         #     df.set_index('Rk', inplace=True)
         #     print("   -> Colonna 'Rk' impostata come ID/Indice.")
 
-        # 3.2 Filtro Minutaggio
-        df_filtrato = df[df['Min'] >= self.MIN_MINUTES].copy()
-        print(f"   -> Filtro Minutaggio applicato (Min >= {self.MIN_MINUTES}). Righe rimanenti: {len(df_filtrato)}")
+        # 3.2 Filtro Minutaggio RIMOSSO (Dataset già filtrato)
+        # df_filtrato = df[df['Min'] >= self.MIN_MINUTES].copy()
+        df_filtrato = df.copy()
+        print(f"   -> Filtro Minutaggio ignorato (Dataset già filtrato). Righe: {len(df_filtrato)}")
 
         # 3.3 Rimuove la colonna 'Min' dopo il filtraggio
         if 'Min' in df_filtrato.columns:
@@ -170,9 +188,10 @@ class PlayerDataPreprocessor:
             # --- RINFORZO DELLA PULIZIA ---
             # Questo è il passaggio anti-errore. Forziamo le colonne statistiche a float
             # un'ultima volta prima della divisione.
+            # ESCLUDIAMO ESPLICITAMENTE Ht. e Wt. dalla divisione per 90s
             cols_to_divide = [
                 col for col in df.columns 
-                if col not in self.METADATA_COLS and col not in self.PERCENTAGE_COLS and col != 'Ruolo_Primario'
+                if col not in self.METADATA_COLS and col not in self.PERCENTAGE_COLS and col != 'Ruolo_Primario' and col not in ['Ht.', 'Wt.']
             ]
             
             for col in cols_to_divide:
@@ -237,13 +256,17 @@ if __name__ == "__main__":
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 1500)
 
-    print("--- TEST: PlayerDataPreprocessor (con Master CSV) ---")
+    print("--- TEST: PlayerDataPreprocessor (con NUOVO Dataset Unificato) ---")
     
-    try:
+    # Percorso del nuovo dataset unificato
+    base_dir = Path(__file__).resolve().parent.parent
+    new_dataset_path = base_dir / 'data' / 'dataset_master_unified_2526.csv'
+    
+    print(f"Usando dataset: {new_dataset_path}")
 
+    try:
         processor = PlayerDataPreprocessor(
-            master_file_path=config.MASTER_CSV_PATH_FINAL, 
-            min_minutes=config.MIN_MINUTES,
+            master_file_path=str(new_dataset_path), 
             ruoli=config.RUOLI,
             metadata_cols=config.METADATA_COLS,
             role_features=config.ROLE_FEATURES,
@@ -251,17 +274,42 @@ if __name__ == "__main__":
             filter_col=config.FILTER_COL
         )
         
-        # Esegui l'intera pipeline (ora molto più veloce)
+        # Esegui l'intera pipeline
         dataframes_x90 = processor.prepare_data()
 
         print("\n--- PIPELINE COMPLETATA. ---")
         
-        print("\n--- Controllo Dati Finali (FW) ---")
-        df_fw = dataframes_x90.get('FW')
-        if df_fw is not None:
-            print(df_fw['Pos'].head())
+        # Verifica su un ruolo (es. FW)
+        role_to_check = 'FW'
+        print(f"\n--- Controllo Dati Finali ({role_to_check}) ---")
+        df_role = dataframes_x90.get(role_to_check)
+        
+        if df_role is not None:
+            print(f"Dimensioni DF {role_to_check}: {df_role.shape}")
+            
+            # Verifica presenza colonne fisiche
+            cols_phys = ['Ht.', 'Wt.']
+            print(f"\nVerifica Colonne Fisiche {cols_phys}:")
+            if all(col in df_role.columns for col in cols_phys):
+                print(" -> OK: Colonne presenti.")
+                print(df_role[['Player', 'Ht.', 'Wt.']].sample(10))
+                
+                # Verifica che non siano state divise per 90s (valori troppo piccoli)
+                # Wt è in kg (es. 70, 80). Se Wt diventa 0.8, è stato diviso.
+                
+                sample_wt = pd.to_numeric(df_role['Wt.'], errors='coerce').dropna()
+                if not sample_wt.empty:
+                    mean_wt = sample_wt.mean()
+                    print(f" -> Media Peso (Wt.): {mean_wt:.2f}")
+                    if mean_wt < 10:
+                        print(" -> WARNING: Il peso sembra troppo basso! È stato diviso per 90s?")
+                    else:
+                        print(" -> OK: Il peso sembra coerente (non diviso per 90s).")
+            else:
+                print(" -> ERROR: Colonne fisiche MANCANTI!")
+
         else:
-            print("Nessun dato FW trovato.")
+            print(f"Nessun dato {role_to_check} trovato.")
 
     except Exception as e:
         print(f"\n--- ERRORE IMPREVISTO DURANTE IL TEST ---")

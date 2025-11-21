@@ -22,7 +22,7 @@ SORT_BY_OPTIONS = [
     {'label': 'Nazionalità (Z-A)', 'value': 'nation_desc'},
 ]
 
-DATA_PATH = BASE_DIR / 'data' / 'dataset_master_final.parquet'
+DATA_PATH = BASE_DIR / 'data' / 'dataset_master_unified_2526.parquet'
 ARTIFACTS_DIR = BASE_DIR / 'artifacts'
 
 # --- Variabili Globali (Inizialmente vuote per Lazy Loading) ---
@@ -62,30 +62,30 @@ def load_data():
     print("Caricamento Database Giocatori...")
     
     # Percorso per la cache del dataframe processato
-    cache_path = ARTIFACTS_DIR / 'database_df_cache.joblib'
+    # cache_path = ARTIFACTS_DIR / 'database_df_cache.joblib'
     
     # Controlla se esiste una cache valida
     loaded_from_cache = False
-    if cache_path.exists():
-        try:
-            print("Trovata cache dati, caricamento veloce...")
-            DATABASE_DF = joblib.load(cache_path)
-            loaded_from_cache = True
-            print("--- DATABASE_DF caricato dalla cache! ---")
-        except Exception as e:
-            print(f"Errore caricamento cache: {e}. Si procede con il caricamento standard.")
+    # if cache_path.exists():
+    #     try:
+    #         print("Trovata cache dati, caricamento veloce...")
+    #         DATABASE_DF = joblib.load(cache_path)
+    #         loaded_from_cache = True
+    #         print("--- DATABASE_DF caricato dalla cache! ---")
+    #     except Exception as e:
+    #         print(f"Errore caricamento cache: {e}. Si procede con il caricamento standard.")
     
     if not loaded_from_cache:
         print("Lettura file Parquet (potrebbe richiedere tempo)...")
         DATABASE_DF = _prepare_database_dataframe(PCA_DATAFRAMES)
         
         # Salva in cache per la prossima volta
-        try:
-            print("Salvataggio cache per avvii futuri...")
-            joblib.dump(DATABASE_DF, cache_path)
-            print("--- DATABASE_DF salvato in cache. ---")
-        except Exception as e:
-            print(f"Impossibile salvare la cache: {e}")
+        # try:
+        #     print("Salvataggio cache per avvii futuri...")
+        #     joblib.dump(DATABASE_DF, cache_path)
+        #     print("--- DATABASE_DF salvato in cache. ---")
+        # except Exception as e:
+        #     print(f"Impossibile salvare la cache: {e}")
     
     # 3. Carica all_roles_options
     print("Configurazione ruoli...")

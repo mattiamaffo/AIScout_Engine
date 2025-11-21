@@ -2,7 +2,7 @@
 
 **AIScout** è un'applicazione web avanzata per lo scouting calcistico che utilizza il Machine Learning per identificare talenti, trovare giocatori simili e analizzare profili statistici complessi.
 
-Originariamente sviluppata come applicazione desktop, è stata migrata in una Web App moderna basata su **Dash**.
+Originariamente sviluppata come applicazione desktop, è stata migrata in una Web App moderna basata su **Dash** e pronta per il deploy in cloud (es. Render.com).
 
 ---
 
@@ -112,7 +112,20 @@ AIScout/
 
 ---
 
+## ☁️ Deployment (Render.com)
+
+L'applicazione è configurata per essere deployata facilmente su Render.com come **Web Service**.
+
+1.  Collega il repository GitHub a Render.
+2.  Imposta i seguenti parametri:
+    - **Runtime:** Python 3
+    - **Build Command:** `pip install -r requirements.txt`
+    - **Start Command:** `gunicorn app:server`
+3.  Deploy! 🚀
+
+---
+
 ## ℹ️ Note sui Dati
 
 I dati utilizzati coprono la stagione **2024-2025** (e precedenti) e includono metriche avanzate come _Expected Goals (xG)_, _Progressive Carries_, _Defensive Actions_, ecc.
-I campionati coperti includono: Top 5 Europei, Championship, Serie B Italiana, Eredivisie, Primeira Liga, Jupiler Pro League, Brasileirão, Primera División Argentina.
+I campionati coperti includono: Top 5 Europei, Championship, Eredivisie, Primeira Liga, Jupiler Pro League, Brasileirão, Primera División Argentina.

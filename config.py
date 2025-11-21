@@ -2,9 +2,23 @@ from typing import List, Dict
 from pathlib import Path
 import sys
 
-# --- Configurazione Percorsi ---
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / 'data'
+# --- Funzione per gestire i percorsi sia in Dev che in .Exe ---
+def get_base_path():
+    """
+    Restituisce il percorso base corretto.
+    Se siamo in un eseguibile PyInstaller, usa sys._MEIPASS.
+    Se siamo in sviluppo locale, usa la cartella corrente del file.
+    """
+    if getattr(sys, 'frozen', False):
+        # Se siamo compilati in un .exe
+        return Path(sys._MEIPASS)
+    else:
+        # Se stiamo eseguendo lo script python normalmente
+        return Path(__file__).resolve().parent
+
+# Definisci BASE_DIR usando la funzione
+BASE_DIR = get_base_path()
+DATA_DIR = BASE_DIR.parent / 'data'
 
 # --- VARIABILI DI CONFIGURAZIONE DATI ---
 FILE_PATH: str = str(DATA_DIR / 'players_data-2024_2025.csv')
@@ -84,44 +98,45 @@ OPTIMAL_K: Dict[str, int] = {
 
 CLUSTER_NAMES_MAP = {
     'FW': {
-        0: 'Ala Tornante',
-        1: 'Attaccante da Pressing',
-        2: 'Bomber',
-        3: 'Centravanti',
+        0: 'Seconda Punta',
+        1: 'Attaccante d\'Area',
+        2: 'Ala Tornante',
+        3: 'Bomber',
         4: 'Ala d\'Attacco'
     },
     'MF': {
-        0: 'Centrocampista di Contenimento',
-        1: 'Mediano',
-        2: 'Centrocampista Box-to-Box',
-        3: 'Regista Arretrato',
-        4: 'Trequartista',
-        5: 'Regista Avanzato'
+        0: 'Regista Arretrato',
+        1: 'Centrocampista Offensivo',
+        2: 'Centrocampista di Equilibrio',
+        3: 'Mediano',
+        4: 'Centrocampista "Box-to-Box"',
+        5: 'Rifinitore'
     },
     'DF': {
-        0: 'Marcatore',
-        1: 'Terzino Offensivo',
-        2: 'Stopper',
-        3: 'Terzino Difensivo',
+        0: 'Difensore Centrale Impostatore',
+        1: 'Stopper',
+        2: 'Terzino Difensivo',
+        3: 'Terzino Fluidificante',
     },
     'GK': {
-        0: 'Line-Keeper',
-        1: 'Portiere Solido',
+        0: 'Portiere "Saracinesca"',
+        1: 'Portiere "Sotto Assedio"',
     }
 }
 
 # Lista per il dropdown "Campionato"
 LEAGUES_LIST: List[str] = [
-    'Serie A',
-    'Premier League',
-    'La Liga',
+    'Belgian Pro League',
     'Bundesliga',
-    'Ligue 1',
     'Championship',
-    'Série A Brazil',
-    'Primera División',
-    'Jupiler Pro League',
     'Eredivisie',
+    'Liga Profesional Argentina',
+    'La Liga',
+    'Liga MX',
+    'Ligue 1',
+    'Premier League',
     'Primeira Liga',
-    'Serie B'
+    'Serie A',
+    'Serie B',
+    'Série A',
 ]
