@@ -55,6 +55,8 @@ external_stylesheets = [
 ]
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
+app.title = "AIScout Engine"
+
 server = app.server
 
 # ====== FUNZIONI DI VALIDAZIONE E GESTIONE ERRORI ======
