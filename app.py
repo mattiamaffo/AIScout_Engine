@@ -9,27 +9,44 @@ from SimEngine import SimilarityEngine
 import plotly.graph_objects as go # type: ignore
 import sys
 import os
-import threading
 from pathlib import Path
 
 # --- Configurazione Percorsi ---
 BASE_DIR = Path(__file__).resolve().parent
 FULL_DATASET_PATH = BASE_DIR / 'data' / 'dataset_master_final.parquet'
 
-# --- Importazioni dai file refattorizzati ---
+# --- Importazione e Caricamento Dati Sincrono ---
+import data
+import config
+
+print("--- Avvio Caricamento Dati Sincrono ---")
+data.load_data()
+
+# --- Inizializzazione Engine Sincrona ---
+print("--- Inizializzazione SimilarityEngine ---")
+try:
+    ARTIFACTS_DIR = BASE_DIR / 'artifacts'
+    engine = SimilarityEngine(artifacts_dir=str(ARTIFACTS_DIR))
+    engine.load_artifacts() # Sincrono
+    print("--- Motore di Similarità Caricato ---")
+    FEATURE_STATS = engine.feature_stats if hasattr(engine, 'feature_stats') else {}
+except Exception as e:
+    print(f"--- ERRORE CRITICO: Impossibile caricare il SimEngine. {e} ---")
+    engine = None
+    FEATURE_STATS = {}
+
+# --- Importazioni Layout (DOPO il caricamento dati) ---
 from layout import (
     create_main_layout, 
     search_player_layout, 
     identikit_layout, 
     database_layout
 )
-import data
 from data import (
     _filter_database, 
     with_blank, 
     ROWS_PER_PAGE
 )
-import config
 
 # 1. --- Inizializzazione App ---
 external_stylesheets = [
@@ -39,40 +56,6 @@ external_stylesheets = [
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
 server = app.server
-
-# Variabile globale per la finestra pywebview
-# window = None
-
-# --- Avvio Caricamento Dati in Background (Lazy Loading) ---
-# Questo thread popola data.DATABASE_DF e data.PLAYER_SEARCH_OPTIONS mentre la UI si carica
-threading.Thread(target=data.load_data, daemon=True).start()
-
-print("--- Inizializzazione Globale SimilarityEngine ---")
-try:
-    ARTIFACTS_DIR = BASE_DIR / 'artifacts'
-    engine = SimilarityEngine(artifacts_dir=str(ARTIFACTS_DIR))
-    print("--- Motore di Similarità Caricato ---")
-    # Rendi le statistiche disponibili globalmente per l'app
-    FEATURE_STATS = engine.feature_stats if hasattr(engine, 'feature_stats') else {}
-except Exception as e:
-    print(f"--- ERRORE CRITICO: Impossibile caricare il SimEngine. {e} ---")
-    engine = None # L'app funzionerà, ma la ricerca fallirà
-    FEATURE_STATS = {}
-
-# --- Avvio Caricamento Modelli AI in Background ---
-# Questo thread pre-carica gli artefatti pesanti (PCA, k-NN) per rendere la ricerca istantanea
-def load_engine_models():
-    print("DEBUG: Thread load_engine_models avviato.")
-    if engine:
-        print("DEBUG: Engine trovato, avvio load_artifacts...")
-        # Passiamo la funzione di callback per aggiornare la barra di progresso
-        engine.load_artifacts(progress_callback=data.set_progress)
-        print("DEBUG: load_artifacts completato.")
-    else:
-        print("DEBUG: Engine è None, impossibile caricare artefatti.")
-
-threading.Thread(target=load_engine_models, daemon=True).start()
-
 
 # ====== FUNZIONI DI VALIDAZIONE E GESTIONE ERRORI ======
 
@@ -113,45 +96,13 @@ def validate_feature_value(feature_name, value):
 
 
 # 2. --- Impostazione Layout ---
-# Creiamo un wrapper per gestire il Loading Screen
 main_layout_content = create_main_layout()
 
-# Layout di Caricamento
-loading_layout = html.Div(
-    id='loading-screen',
-    style={
-        'position': 'fixed',
-        'top': 0,
-        'left': 0,
-        'width': '100%',
-        'height': '100%',
-        'backgroundColor': '#1e1e1e', # Colore di sfondo scuro coerente con l'app
-        'zIndex': 9999,
-        'display': 'flex',
-        'flexDirection': 'column',
-        'justifyContent': 'center',
-        'alignItems': 'center'
-    },
-    children=[
-        html.Img(src='/assets/FullLogo_Transparent.png', style={'width': '250px', 'marginBottom': '30px'}),
-        
-        # Progress Bar Container
-        html.Div(style={'width': '50%', 'maxWidth': '600px'}, children=[
-            dbc.Progress(id="loading-progress-bar", value=0, striped=True, animated=True, color="info", style={"height": "20px"}),
-        ]),
-        
-        html.H5(id="loading-text", children="Inizializzazione...", style={'color': '#cccccc', 'marginTop': '20px', 'fontFamily': 'sans-serif'}),
-        html.P("Il primo avvio potrebbe richiedere alcuni secondi.", style={'color': '#888888', 'fontSize': '14px'})
-    ]
-)
-
-# Layout Principale (inizialmente nascosto)
 app.layout = html.Div([
-    loading_layout,
-    html.Div(
-        id='main-content-wrapper',
-        style={'display': 'none'}, # Nascosto all'avvio
-        children=main_layout_content
+    dcc.Loading(
+        id="loading-spinner",
+        type="default",
+        children=html.Div(id='main-content-wrapper', children=main_layout_content)
     )
 ])
 
@@ -1313,53 +1264,6 @@ def update_database_table(name_value, pos_value, role_value, age_min_value, age_
     }
 
     return rows_children, page_info, pagination_data
-
-# --- Callback 0: Lazy Loading Check & Progress Update ---
-@app.callback(
-    Output('search-bar', 'options'),
-    Output('startup-interval', 'disabled'),
-    Output('loading-screen', 'style'),
-    Output('main-content-wrapper', 'style'),
-    Output('loading-progress-bar', 'value'), # Nuovo output
-    Output('loading-text', 'children'),      # Nuovo output
-    Input('startup-interval', 'n_intervals')
-)
-def check_data_loaded(n):
-    """
-    Controlla periodicamente se i dati E i modelli sono stati caricati dai thread in background.
-    Aggiorna la barra di progresso.
-    Appena sono pronti, popola la barra di ricerca, nasconde il loading screen e mostra l'app.
-    """
-    # Leggi stato globale
-    current_progress = data.LOADING_PROGRESS
-    current_status = data.LOADING_STATUS
-    
-    # print(f"DEBUG: check_data_loaded -> Progress: {current_progress}%, Status: {current_status}")
-    
-    data_ready = bool(data.PLAYER_SEARCH_OPTIONS)
-    engine_ready = engine.artifacts_loaded if engine else True # Se engine è None (errore), non bloccare
-    
-    if data_ready and engine_ready:
-        print("--- Dati e Modelli pronti! Aggiornamento UI... ---")
-        # Nascondi loading screen, mostra contenuto principale
-        return (
-            data.PLAYER_SEARCH_OPTIONS, 
-            True, # Disabilita interval
-            {'display': 'none'}, # Nascondi Loading
-            {'display': 'block'}, # Mostra App
-            100, # Progress finale
-            "Caricamento Completato!" # Testo finale
-        )
-    
-    # Se non è ancora pronto, aggiorna solo la barra e il testo
-    return (
-        dash.no_update, 
-        False, 
-        dash.no_update, 
-        dash.no_update,
-        current_progress,
-        current_status
-    )
 
 # --- Callback: Toggle Fullscreen (Disabilitato per Web App) ---
 @app.callback(
