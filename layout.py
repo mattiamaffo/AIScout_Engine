@@ -368,8 +368,6 @@ def create_main_layout():
             # --- NUOVO: Componente per il Download CSV ---
             dcc.Download(id="download-dataframe-csv"),
 
-            # --- NUOVO: Interval per caricamento dati lazy ---
-            dcc.Interval(id='startup-interval', interval=1000, n_intervals=0), # max_intervals rimosso per polling
 
             # --- Tasto Fullscreen Toggle (Posizionato in alto a destra) ---
             html.Button(
