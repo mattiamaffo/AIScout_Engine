@@ -2,23 +2,9 @@ from typing import List, Dict
 from pathlib import Path
 import sys
 
-# --- Funzione per gestire i percorsi sia in Dev che in .Exe ---
-def get_base_path():
-    """
-    Restituisce il percorso base corretto.
-    Se siamo in un eseguibile PyInstaller, usa sys._MEIPASS.
-    Se siamo in sviluppo locale, usa la cartella corrente del file.
-    """
-    if getattr(sys, 'frozen', False):
-        # Se siamo compilati in un .exe
-        return Path(sys._MEIPASS)
-    else:
-        # Se stiamo eseguendo lo script python normalmente
-        return Path(__file__).resolve().parent
-
-# Definisci BASE_DIR usando la funzione
-BASE_DIR = get_base_path()
-DATA_DIR = BASE_DIR.parent / 'data'
+# --- Configurazione Percorsi ---
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / 'data'
 
 # --- VARIABILI DI CONFIGURAZIONE DATI ---
 FILE_PATH: str = str(DATA_DIR / 'players_data-2024_2025.csv')

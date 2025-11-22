@@ -7,20 +7,6 @@ from pathlib import Path
 import unicodedata
 import re
 
-# --- Funzione per gestire i percorsi sia in Dev che in .Exe ---
-def get_base_path():
-    """
-    Restituisce il percorso base corretto.
-    Se siamo in un eseguibile PyInstaller, usa sys._MEIPASS.
-    Se siamo in sviluppo locale, usa la cartella corrente del file.
-    """
-    if getattr(sys, 'frozen', False):
-        # Se siamo compilati in un .exe
-        return Path(sys._MEIPASS)
-    else:
-        # Se stiamo eseguendo lo script python normalmente
-        return Path(__file__).resolve().parent
-
 # --- Configurazione Pandas ---
 pd.set_option('display.max_rows', 10)
 pd.set_option('display.max_columns', None)

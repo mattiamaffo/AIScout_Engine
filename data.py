@@ -6,22 +6,8 @@ import math
 import numpy as np # type: ignore
 import sys
 
-# --- Funzione per gestire i percorsi sia in Dev che in .Exe ---
-def get_base_path():
-    """
-    Restituisce il percorso base corretto.
-    Se siamo in un eseguibile PyInstaller, usa sys._MEIPASS.
-    Se siamo in sviluppo locale, usa la cartella corrente del file.
-    """
-    if getattr(sys, 'frozen', False):
-        # Se siamo compilati in un .exe
-        return Path(sys._MEIPASS)
-    else:
-        # Se stiamo eseguendo lo script python normalmente
-        return Path(__file__).resolve().parent
-
-# Definisci BASE_DIR usando la funzione
-BASE_DIR = get_base_path()
+# --- Configurazione Percorsi ---
+BASE_DIR = Path(__file__).resolve().parent
 
 # --- Costanti ---
 ROWS_PER_PAGE = 7 
@@ -36,12 +22,7 @@ SORT_BY_OPTIONS = [
     {'label': 'Nazionalità (Z-A)', 'value': 'nation_desc'},
 ]
 
-# In eseguibile, i file data sono dentro _MEIPASS/data, non fuori
-if getattr(sys, 'frozen', False):
-    DATA_PATH = BASE_DIR / 'data' / 'dataset_master_unified_2526.parquet'
-else:
-    DATA_PATH = BASE_DIR.parent / 'data' / 'dataset_master_unified_2526.parquet'
-
+DATA_PATH = BASE_DIR / 'data' / 'dataset_master_unified_2526.parquet'
 ARTIFACTS_DIR = BASE_DIR / 'artifacts'
 
 # --- Variabili Globali (Inizialmente vuote per Lazy Loading) ---
@@ -114,6 +95,11 @@ def load_data():
 
     if not loaded_from_cache:
         set_progress(30, "Lettura file Parquet (potrebbe richiedere tempo)...")
+        if not DATA_PATH.exists():
+            print(f"ERRORE: File dataset non trovato in: {DATA_PATH}")
+            print(f"BASE_DIR attuale: {BASE_DIR}")
+            print(f"Contenuto directory BASE_DIR: {list(BASE_DIR.iterdir()) if BASE_DIR.exists() else 'Directory non esiste'}")
+            raise FileNotFoundError(f"Il file {DATA_PATH} non esiste. Assicurati che sia presente nella directory corretta.")
         DATABASE_DF = _prepare_database_dataframe(PCA_DATAFRAMES)
         
         # Salva in cache per la prossima volta

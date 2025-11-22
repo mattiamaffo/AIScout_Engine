@@ -13,11 +13,7 @@ from pathlib import Path
 
 # --- Configurazione Percorsi ---
 BASE_DIR = Path(__file__).resolve().parent
-
-if getattr(sys, 'frozen', False):
-    FULL_DATASET_PATH = BASE_DIR / 'data' / 'dataset_master_unified_2526.parquet'
-else:
-    FULL_DATASET_PATH = BASE_DIR.parent / 'data' / 'dataset_master_unified_2526.parquet'
+FULL_DATASET_PATH = BASE_DIR / 'data' / 'dataset_master_unified_2526.parquet'
 
 # --- Importazione e Caricamento Dati Sincrono ---
 import data
