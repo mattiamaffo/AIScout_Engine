@@ -1,1822 +1,1381 @@
-/* Importa un font pulito e moderno (es. Inter) */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap");
+/* Importa un font pulito e moderno (Outfit) */
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap");
 
-/* Definisci la tua nuova palette */
+/* Definisci la tua nuova palette (Dark Theme) */
 :root {
   /* --- Base Layout --- */
-  --bg-main: #f7fafc;
-  --bg-accent: #e5e7eb;
+  --bg-main: #0f172a; /* Dark Blue */
+  --bg-accent: #1e293b;
   --white: #ffffff;
-  --white-translucent: rgba(255, 255, 255, 0.8);
+  --white-translucent: rgba(255, 255, 255, 0.1);
 
   /* --- Primary/Accent Colors --- */
-  --primary: #1e3a8a;
-  --primary-hover: #1e81a8;
-  --secondary-active: #30abdc;
-  --light-accent: #dbeafe;
+  --primary: #0ea5e9; /* Cyan */
+  --primary-hover: #0284c7;
+  --secondary-active: #3b82f6; /* Blue */
+  --light-accent: rgba(14, 165, 233, 0.2);
   --accent-red: #e11d48;
 
   /* --- Text Colors --- */
-  --text-color: #31333f; /* Corretto da #3133f */
-  --text-darker: #222222;
-  --text-dark: #333333;
-  --text-medium: #555555;
-  --text-gray: #6b7280;
-  --text-placeholder: #999999;
+  --text-color: #f1f5f9;
+  --text-darker: #e2e8f0;
+  --text-dark: #cbd5e1;
+  --text-medium: #94a3b8;
+  --text-gray: #64748b;
+  --text-placeholder: #64748b;
 
-  /* --- UI Elements (Icons, Borders, Focus) --- */
-  --icon-light: #cccccc;
-  --border-light: #cbd5e1;
-  --focus-primary: #007bff;
-  --focus-light-bg: #e6f2ff;
-  --focus-ring: rgba(0, 123, 255, 0.25);
+  /* --- UI Elements --- */
+  --icon-light: #94a3b8;
+  --border-light: rgba(255, 255, 255, 0.1);
+  --focus-primary: #0ea5e9;
+  --focus-light-bg: rgba(14, 165, 233, 0.1);
+  --focus-ring: rgba(14, 165, 233, 0.4);
 
-  /* --- Shadows (usare con parsimonia) --- */
-  --shadow-light: rgba(0, 0, 0, 0.05);
-  --shadow-dropdown: rgba(0, 0, 0, 0.08);
-  --shadow-medium: rgba(0, 0, 0, 0.1);
-  --shadow-dark: rgba(0, 0, 0, 0.15);
-  --shadow-extra-dark: rgba(0, 0, 0, 0.2);
+  /* --- Shadows --- */
+  --shadow-light: rgba(0, 0, 0, 0.2);
+  --shadow-dropdown: rgba(0, 0, 0, 0.3);
+  --shadow-medium: rgba(0, 0, 0, 0.4);
+  --shadow-dark: rgba(0, 0, 0, 0.6);
+  --shadow-extra-dark: rgba(0, 0, 0, 0.8);
 }
 
 /* Stile base della pagina */
 html,
 body {
-  font-family: "Inter", sans-serif;
+  font-family: "Outfit", sans-serif;
   color: var(--text-color);
   margin: 0;
   padding: 0;
-  overflow-y: hidden; /* Blocca lo scroll verticale */
+  overflow-y: auto;
   height: 100%;
-
-  /* --- SFONDO IMMAGINE (SENZA OPACITÀ) --- */
-
-  /* 1. Colore di fallback se l'immagine non carica */
   background-color: var(--bg-main);
-
-  /* 2. Immagine di sfondo */
-  background-image: url("/assets/background3.png");
-
-  /* 3. Stile dell'immagine */
-  background-size: cover; /* Copre l'intero spazio */
-  background-position: center; /* Centra l'immagine */
-  background-repeat: no-repeat; /* Non ripeterla */
-
-  /* Aggiunge un effetto 'fisso' (opzionale ma carino) */
+  /* Background Gradient similar to image */
+  background: url("back_def_2.png") no-repeat center center fixed;
   background-attachment: fixed;
 }
 
-/* --- Stili Base per Animazione --- */
-
-#app-logo {
-  /* Stato iniziale (Home) - quello che abbiamo rimosso da app.py */
-  width: 350px;
-  margin-top: -2.5rem;
-
-  /* L'ANIMAZIONE: esegui per 0.4 secondi con un effetto 'ease-out' */
-  transition: width 0.4s ease-out, margin-top 0.4s ease-out;
-}
-/* Titolo: "AIScout Engine" */
-.app-title {
-  color: var(--primary);
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  margin-top: 1.5rem;
-}
-
-/* Sottotitolo: "Trova, confronta..." */
-.app-subtitle {
-  color: var(--text-gray);
-  font-size: 1.125rem;
-  font-weight: 400;
-  margin-top: -2.5rem;
-  margin-bottom: 1.5rem;
-}
-
-/* --- NUOVO: Stile Segmented Control --- */
-.segmented-control {
-  display: flex;
-  flex-direction: row;
-  background-color: var(--white);
-  border: 1px solid var(--bg-accent);
-  border-radius: 0.75rem; /* Stessa smussatura della barra di ricerca */
-  box-shadow: 0 4px 6px -1px var(--shadow-light);
-  margin-bottom: 2rem;
-  overflow: hidden; /* Per forzare i bordi sui figli */
-  transition: margin-top 1s ease-out;
-}
-
-/* --- NUOVO: Bottone Controllo Finestra (Fullscreen) --- */
-.btn-window-control {
-  position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
-  background: rgba(
-    255,
-    255,
-    255,
-    0.5
-  ); /* Sfondo semitrasparente per leggibilità */
-  border: 1px solid var(--bg-accent);
-  border-radius: 50%; /* Rotondo */
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-gray);
-  font-size: 1.2rem;
-  cursor: pointer;
-  z-index: 2000; /* Sopra tutto */
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 5px var(--shadow-light);
-}
-
-.btn-window-control:hover {
-  background-color: var(--white);
-  color: var(--primary);
-  box-shadow: 0 4px 8px var(--shadow-medium);
-  transform: scale(1.05);
-}
-
-/* Stile per i singoli item (bottoni) */
-.icon-nav-item {
-  background-color: transparent; /* Da trasparente di base */
-  border: none;
-  color: var(--text-gray);
-  font-size: 1rem; /* <-- MODIFICATO: leggermente più piccolo */
-  padding: 0.5rem 1.5rem; /* <-- MODIFICATO: padding verticale ridotto */
-  cursor: pointer;
-  transition: all 0.3s ease;
-  /* Aggiungi il divisore a destra */
-  border-right: 1px solid var(--bg-accent);
-}
-
-/* Rimuovi il divisore per l'ultimo elemento */
-.icon-nav-item:last-child {
-  border-right: none;
-}
-
-.icon-nav-item:hover {
-  background-color: var(--light-accent);
-  color: var(--primary-hover);
-}
-
-/* Stile per l'item ATTIVO */
-.icon-nav-item.active {
-  background-color: var(--secondary-active);
-  color: var(--white);
-  box-shadow: 0 2px 4px var(--shadow-medium); /* Ombra interna leggera */
-}
-/* --- Fine Stili Navbar --- */
-
-/* Contenuto della pagina (placeholder) */
-.placeholder-text {
-  color: var(--text-gray);
-  font-size: 1rem;
-  margin-top: 2rem;
+/* --- Glassmorphism Card --- */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  max-width: 800px;
+  width: 90%;
+  margin: 2rem auto;
   text-align: center;
-  min-height: 200px;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Stile per il messaggio sotto lo slider */
-#output-display {
-  margin-top: 3rem !important; /* Aumentato per staccare dallo slider */
-  color: var(--text-color);
+/* Glow effect behind the card (optional) */
+.glass-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(14, 165, 233, 0.1) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+  z-index: -1;
 }
 
-/* Contenuto Pagina di Ricerca (per allineamento) */
-#page-content {
+.glass-card-content {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 220px;
+  gap: 2rem;
 }
 
-/* --- Stile Globale per la Barra di Ricerca (dcc.Dropdown) --- */
+.glass-subtitle {
+  font-size: 1.5rem; /* Reduced from 2rem */
+  font-weight: 600;
+  font-family: "Outfit", sans-serif;
+  color: white;
+  margin: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  line-height: 1.2;
+}
+
+/* --- Search Bar & Button --- */
+.search-button-container {
+  display: flex;
+  width: 100%;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+}
 
 .search-bar-container-wrapper {
-  position: relative; /* Riferimento per i menu dropdown assoluti */
+  flex-grow: 1;
+  width: 100%; /* Force width to fill flex item */
+  min-width: 300px; /* Prevent collapse */
 }
 
 .search-bar-container-wrapper .Select-control {
-  display: flex;
-  align-items: center;
-  border: none;
-  border-radius: 25px;
-  background-color: var(--white);
-  box-shadow: 0 4px 12px var(--shadow-medium);
-  min-height: 42px;
-  font-size: 1rem;
-  color: var(--text-dark);
-  transition: box-shadow 0.3s ease;
-  padding: 0 20px 0 16px;
-  position: relative;
-  line-height: 1.2; /* forza la coerenza tra placeholder e valore */
-  box-sizing: border-box;
-}
-
-/* Hover / Focus */
-.search-bar-container-wrapper .Select-control:hover {
-  box-shadow: 0 6px 16px var(--shadow-dark);
-}
-
-.search-bar-container-wrapper.is-open .Select-control,
-.search-bar-container-wrapper.is-focused .Select-control {
-  box-shadow: 0 0 0 2px var(--focus-ring);
-}
-
-/* Placeholder */
-.search-bar-container-wrapper .Select-placeholder {
-  color: var(--text-placeholder);
-  font-style: italic;
-  display: flex;
-  align-items: center;
-  height: 100%;
-}
-
-/* --- Fix Placeholder Dinamico --- */
-
-/* Seleziona il placeholder SOLO QUANDO la barra è in "focus" (cliccata) */
-.search-bar-container-wrapper.is-focused .Select-placeholder {
-  display: none; /* Nasconde il placeholder */
-}
-
-/* Forza la 'x' a essere visibile */
-/* --- FIX: Rende visibile la "x" per cancellare (clearable=True) --- */
-.search-bar-container-wrapper .Select-clear-zone {
-  display: block !important;
-  position: absolute;
-  left: 15px; /* <-- MODIFICATO: Posiziona a sinistra */
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  font-size: 1.2rem;
-  color: var(--icon-light);
-  transition: color 0.2s ease;
-}
-
-/* Scurisce la 'x' al passaggio del mouse */
-.search-bar-container-wrapper .Select-clear-zone:hover {
-  color: var(--text-dark);
-}
-
-/* Contenitore valore + input */
-.search-bar-container-wrapper .Select-value-container {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-height: 42px;
-  padding-left: 32px;
-  padding-right: 32px;
-}
-
-/* Input di testo */
-.search-bar-container-wrapper .Select-input > input {
-  color: var(--text-dark) !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  height: 100% !important;
-  line-height: normal !important;
-  font-size: 1rem;
-  background: transparent;
-  border: none;
-  outline: none;
-}
-
-/* Icona freccia */
-.search-bar-container-wrapper .Select-arrow-zone {
-  position: absolute;
-  right: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-/* --- RIMOSSA REGOLA RIDONDANTE .Select-clear-zone { display: none; } --- */
-
-/* --- Menu dropdown --- */
-.search-bar-container-wrapper .Select-menu-outer {
-  border: none;
-  border-radius: 10px;
-  background: var(--white);
-  box-shadow: 0 8px 24px var(--shadow-extra-dark);
-  margin-top: 14px; /* lascia più spazio tra controllo e menu */
-  padding: 8px 0 10px; /* ridotto: useremo uno spacer pseudo-element per maggiore affidabilità */
-  max-height: 300px;
-  overflow-y: auto;
-  position: absolute; /* Posiziona il menu rispetto al wrapper */
-  left: 0;
-  right: auto;
-  width: auto; /* lascia che min-width controlli l'espansione */
-  min-width: 100%; /* almeno la larghezza del controllo */
-  box-sizing: border-box;
-  z-index: 50; /* Sopra altri elementi */
-}
-
-.search-bar-container-wrapper .Select-option {
-  display: block;
-  box-sizing: border-box;
-  padding: 18px 20px; /* aumentato padding verticale per maggiore spaziatura */
-  min-height: 56px; /* aumentata altezza minima per più respiro */
-  line-height: 1.8; /* aumentata interlinea per maggiore leggibilità */
-  font-size: 0.98rem;
-  color: var(--text-medium);
-  transition: background-color 0.2s;
-  white-space: normal; /* permette l'andare a capo ordinato */
-  word-break: break-word;
-}
-
-/* Riduciamo la modifica precedente: primo elemento ha solo un piccolo offset */
-.search-bar-container-wrapper .Select-menu-outer::before {
-  content: "";
-  display: block;
-  height: 12px; /* spacer affinchè il primo elemento non venga tagliato */
-  width: 100%;
-}
-
-.search-bar-container-wrapper .Select-menu-outer .Select-option:first-child {
-  padding-top: 0; /* azzeriamo il padding-top qui per evitare doppi spazi */
-}
-
-.search-bar-container-wrapper .Select-option.is-focused {
-  background-color: var(--focus-light-bg);
-  color: var(--focus-primary);
-}
-
-/* Aggiunge spazio verticale tra le opzioni per separazione visiva */
-.search-bar-container-wrapper
-  .Select-menu-outer
-  .Select-option
-  + .Select-option {
-  margin-top: 10px;
-}
-
-.search-bar-container-wrapper .Select-option.is-selected {
-  background-color: var(--focus-primary);
-  color: var(--white);
-}
-
-/* Valore selezionato */
-.search-bar-container-wrapper .Select-value {
-  display: flex !important;
-  align-items: center !important;
-  height: 100%;
-}
-
-.search-bar-container-wrapper .Select-value-label {
-  display: flex;
-  align-items: center;
-  height: 100%;
-  font-weight: 500;
-  font-size: 0.9rem;
-  color: var(--text-darker);
-  padding: 0 30px;
-  line-height: 1.2; /* correzione fine per centratura perfetta */
-}
-
-/* --- NUOVO: Contenitore per Search Bar + Bottone --- */
-.search-button-container {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 1rem;
-  width: 100%; /* Barra molto più larga */
-  max-width: 900px; /* Regolabile secondo il layout */
-  margin: 0 auto; /* Centra il contenuto */
-}
-
-.search-button-container {
-  position: relative; /* Riferimento per dropdown assoluti figli */
-}
-
-/* Assicura che la search bar dentro il container della search+button occupi lo spazio disponibile */
-.search-button-container .search-bar-container-wrapper {
-  width: 100%;
-}
-
-.search-button {
-  /* RIMOSSO flex-shrink: 0; (inefficace su parent 'grid') */
-  background-color: var(--secondary-active); /* Colore blu primario */
-  color: var(--white); /* Testo bianco */
-  border: none;
-  border-radius: 0.75rem; /* Stessa smussatura della navbar */
-  padding: 0 1.25rem; /* Spaziatura interna */
-  font-size: 0.9rem;
-  font-weight: 600; /* Testo in grassetto */
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px -1px var(--shadow-light);
-
-  /* Allinea icona e testo */
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-
-  /* Assicura altezza coerente con la barra di ricerca */
-  height: 42px; /* Stessa min-height della barra */
-  min-width: 140px;
-  width: auto;
-  justify-self: end; /* Allinea il bottone a destra della griglia */
-  position: static;
-}
-
-/* ------------------------------ */
-/* Identikit Card Styles (new)   */
-/* ------------------------------ */
-.identikit-outer {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 1.5rem 1rem 3rem 1rem;
-}
-
-.identikit-card {
-  width: 100%;
-  max-width: 1100px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.9),
-    rgba(255, 255, 255, 0.95)
-  );
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(20, 30, 40, 0.06);
-  padding: 1.25rem 1.5rem;
-  border: 1px solid rgba(200, 210, 220, 0.6);
-}
-
-.identikit-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  margin-bottom: 0.75rem;
-}
-.identikit-header h3 {
-  margin: 0;
-  font-size: 1.5rem;
-  color: var(--text-darker);
-}
-.identikit-sub {
-  margin: 0;
-  color: var(--text-gray);
-  font-size: 0.95rem;
-}
-
-.identikit-grid {
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 1.25rem;
-  align-items: start;
-}
-
-.identikit-left {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.identikit-right {
-  display: flex;
-  flex-direction: column;
-}
-
-.identikit-dropdown,
-.identikit-input {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.identikit-input {
-  height: 40px;
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid var(--bg-accent);
-}
-
-.identikit-button-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-top: 0.5rem;
-}
-.identikit-button-row .search-button {
-  min-width: 220px;
-}
-
-.identikit-features-title {
-  margin: 0 0 0.5rem 0;
-  color: var(--text-darker);
-}
-.identikit-features-scroll {
-  max-height: 380px;
-  overflow-y: auto;
-  padding: 0.5rem;
-  border-radius: 8px;
-  background-color: rgba(250, 250, 250, 0.6);
-  border: 1px dashed rgba(200, 210, 220, 0.6);
-}
-
-/* Feature rows inside identikit-role-features will inherit existing .identikit-feature-row styles */
-
-/* Responsive: stack columns under 900px */
-@media (max-width: 900px) {
-  .identikit-grid {
-    grid-template-columns: 1fr;
-  }
-  .identikit-right {
-    order: 2;
-  }
-  .identikit-left {
-    order: 1;
-  }
-  .identikit-card {
-    padding: 1rem;
-  }
-}
-
-.search-button:hover {
-  background-color: var(--primary-hover); /* Colore "active" della navbar */
-  box-shadow: 0 6px 16px var(--shadow-medium);
-  transform: translateY(-1px); /* Leggero sollevamento */
-}
-
-/* Stile per i wrapper della pagina Home */
-.slider-container-wrapper {
-  width: 500px; /* Mantiene il layout desktop */
-  max-width: 100%; /* Assicura che non strabordi */
-}
-
-/* Filtri per Search Player - stile identico a Identikit */
-.search-filters {
-  display: flex;
-  flex-direction: row;
-  gap: 20px;
-  justify-content: center;
-  margin-top: 2.5rem;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.85);
-  border-radius: 10px;
-  border: 1px solid rgba(200, 210, 220, 0.6);
-  box-shadow: 0 2px 8px rgba(30, 40, 50, 0.04);
-  max-width: 500px;
-  width: 100%;
-}
-
-/* Label dello Slider (MODIFICATO) */
-.slider-label {
-  color: var(--text-gray);
-  font-weight: 500;
-  margin-top: 2rem;
-  margin-bottom: 1.5rem;
-  text-align: center; /* <-- AGGIUNTO per centrare */
-}
-
-/* Stile dello Slider (componenti rc-slider) */
-.rc-slider-track {
-  background-color: var(--secondary-active);
-}
-.rc-slider-handle {
-  border-color: var(--secondary-active);
-  background-color: var(--secondary-active);
-  opacity: 1;
-  box-shadow: 0 0 0 3px var(--white), 0 0 0 5px var(--primary-hover);
-}
-.rc-slider-handle:hover,
-.rc-slider-handle:active {
-  border-color: var(--primary-hover) !important;
-  box-shadow: 0 0 0 3px var(--white), 0 0 0 5px var(--primary-hover) !important;
-}
-.rc-slider-rail {
-  background-color: var(--border-light); /* MODIFICATO: Grigio più visibile */
-  height: 6px;
-}
-.rc-slider-track {
-  height: 6px;
-}
-/* Stile per i PALLINI (marks) sulla barra */
-.rc-slider-dot {
-  border-color: var(--border-light); /* Bordo grigio per i pallini inattivi */
-  background-color: var(--white);
-}
-
-/* Stile per i PALLINI (marks) ATTIVI (superati dal handle) */
-.rc-slider-dot-active {
-  border-color: var(--primary-hover); /* MODIFICATO: Bordo blu scuro */
-  background-color: var(--white);
-}
-.rc-slider-handle {
-  height: 18px;
-  width: 18px;
-  margin-top: -6px;
-}
-
-/* Stile per i numeri (marks) dello slider */
-.rc-slider-mark-text {
-  color: var(--text-gray); /* Colore coerente */
-  font-size: 0.8rem; /* MODIFICA: Rende il testo più grande (default è ~0.75rem) */
-  top: 20px; /* MODIFICA: Sposta i numeri più in basso (default è ~18px) */
-}
-
-/* Footer (spinto in basso) */
-.app-footer {
-  margin-top: auto;
-  padding-bottom: 2rem;
-  font-size: 0.875rem;
-  color: var(--text-gray);
-}
-
-/* --- NUOVA REGOLA per il cuore nel footer --- */
-/* (Dovrai modificare layout.py per usare className='heart' 
-   al posto dello stile inline) */
-.app-footer .heart {
-  color: var(--accent-red);
-}
-
-/* --- Stili Layout Dinamico --- */
-
-/* Nasconde il sottotitolo DB in stato 'home' (invariato) */
-.layout-home #db-subtitle {
-  display: none;
-}
-
-/* Layout di default (Home) (invariato) */
-#main-container.layout-home {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 5vh; /* Header "stretto" */
-}
-.layout-home #app-subtitle {
-  display: block;
-}
-
-/* --- LAYOUT IDENTIKIT: solo per la scheda Identikit --- */
-#main-container.layout-identikit {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 1.5vh; /* Riduce lo spazio verticale per mostrare più contenuto */
-  overflow-y: auto; /* Scroll verticale per l'intera pagina */
-  max-height: 100vh; /* Altezza massima schermo */
-}
-
-#main-container.layout-identikit #app-logo {
-  width: 180px; /* Logo piccolo sopra la navbar */
-  margin-top: 0.25rem; /* Ridotto per alzare */
-  margin-bottom: 0.25rem; /* Ridotto per alzare */
-  transition: width 0.3s ease, margin 0.3s ease;
-}
-
-#main-container.layout-identikit #app-subtitle {
-  display: none; /* Nasconde il sottotitolo per guadagnare spazio */
-}
-
-#main-container.layout-identikit #app-navbar {
-  /* Mantieni la stessa altezza/spacing della navbar nelle altre pagine.
-     Non cambiare l'altezza, solo assicurati che non introduca spazio extra. */
-  flex-shrink: 0;
-  margin-bottom: 0.5rem; /* Ridotto ulteriormente per alzare */
-  transform: none; /* Nessun sollevamento: manteniamo l'altezza costante */
-}
-
-/* Avvicina il contenuto della pagina alla navbar per far vedere la tabella */
-#main-container.layout-identikit #page-content {
-  width: 100%;
-  max-width: 1200px;
-  padding: 0 1.5rem 1rem 1.5rem;
-  margin-top: 0.25rem;
-}
-
-/* --- IDENTIKIT: NEW Modern layout styles (scoped) --- */
-.identikit-shell {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0.25rem 1.25rem 1.25rem 1.25rem; /* Ridotto ulteriormente padding top */
-}
-
-.identikit-top {
-  width: 100%;
-  max-width: 1200px;
-  margin-bottom: 0.5rem; /* Ridotto per alzare le tabelle */
-  text-align: center; /* Centra il titolo */
-}
-
-.identikit-title h3 {
-  margin: 0;
-  font-size: 1.6rem;
-  color: var(--text-darker);
-}
-.identikit-sub {
-  margin: 0.25rem 0 0 0;
-  color: var(--text-gray);
-}
-
-.identikit-main {
-  width: 100%;
-  max-width: 1200px;
-  display: grid;
-  grid-template-columns: 1fr 2fr; /* Form 1 colonna, Features 2 colonne */
-  gap: 1.5rem;
-  align-items: start;
-}
-
-.identikit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 1rem;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.98),
-    rgba(255, 255, 255, 0.96)
-  );
-  border-radius: 12px;
-  box-shadow: 0 6px 22px rgba(30, 40, 50, 0.04);
-  border: 1px solid rgba(200, 210, 220, 0.6);
-}
-
-.identikit-control {
-  height: 44px;
-  padding: 0 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(200, 210, 220, 0.8);
-  background: #ffffff;
-  box-shadow: 0 4px 10px rgba(30, 40, 50, 0.03);
-  font-size: 0.95rem;
-  position: relative; /* Per posizionare la freccia */
-}
-
-/* Remove double-layer appearance from Select dropdowns */
-.identikit-control .Select-control {
-  border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  height: 100% !important;
-  min-height: 44px !important;
-  padding: 0 !important;
-  display: flex !important;
-  align-items: center !important; /* Centra verticalmente */
-}
-
-.identikit-control .Select-value-container,
-.identikit-control .Select-placeholder,
-.identikit-control .Select-input {
-  padding: 0 !important;
-  margin: 0 !important;
-  display: flex !important;
-  align-items: center !important; /* Centra verticalmente */
-  height: 100% !important;
-  flex: 1 !important; /* Occupa spazio disponibile */
-}
-
-/* Position arrow to the right */
-.identikit-control .Select-arrow-zone {
-  position: absolute !important;
-  right: 12px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  pointer-events: none !important;
-}
-
-/* Position clear icon (X) next to arrow */
-.identikit-control .Select-clear-zone {
-  position: absolute !important;
-  right: 36px !important; /* A sinistra della freccia */
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  z-index: 10 !important;
-  cursor: pointer !important;
-  pointer-events: auto !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-.identikit-control .Select-value-container .Select-value,
-.identikit-control .Select-value-label {
-  display: flex !important;
-  align-items: center !important; /* Centra il testo selezionato */
-  height: 100% !important;
-  line-height: normal !important;
-}
-
-/* Fix input placeholder alignment */
-.identikit-control input {
-  height: 100% !important;
-  border: none !important;
-  background: transparent !important;
-  outline: none !important;
-  padding: 0 !important;
-  font-size: 0.95rem !important;
-  color: inherit !important;
-  line-height: 44px !important; /* Allinea verticalmente al centro */
-}
-
-/* Uniform placeholder color for all controls */
-.identikit-control .Select-placeholder,
-.identikit-control input::placeholder {
-  color: #757575 !important; /* Colore grigio nativo browser (uguale a Età) */
-  opacity: 1 !important;
-  display: flex !important;
-  align-items: center !important;
-  height: 100% !important;
-  line-height: normal !important;
-}
-
-/* Dropdown menu styling for Identikit */
-.identikit-control .Select-menu-outer {
-  border-radius: 8px !important;
-  border: 1px solid rgba(200, 210, 220, 0.8) !important;
-  box-shadow: 0 4px 12px rgba(30, 40, 50, 0.1) !important;
-  margin-top: 4px !important;
-  overflow: hidden !important;
-  left: 0 !important; /* Allinea con il bordo del campo */
-  right: 0 !important; /* Estende fino al bordo destro */
-  width: 100% !important; /* Larghezza uguale al campo */
-}
-
-.identikit-control .Select-menu {
-  max-height: 200px !important;
-  overflow-y: auto !important;
-}
-
-.identikit-control .Select-option {
-  padding: 12px !important; /* Stesso padding del campo principale */
-  font-size: 0.95rem !important;
-  line-height: normal !important;
-  display: flex !important;
-  align-items: center !important;
-  cursor: pointer !important;
-}
-
-.identikit-control .Select-option:hover {
-  background-color: rgba(30, 145, 184, 0.1) !important;
-}
-
-.identikit-control .Select-option.is-focused {
-  background-color: rgba(30, 145, 184, 0.15) !important;
-}
-
-.identikit-control .Select-option.is-selected {
-  background-color: var(--primary) !important;
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 12px !important;
+  height: 50px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
   color: white !important;
 }
 
-.identikit-filters {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-  padding: 10px;
-  background: rgba(240, 245, 250, 0.5);
-  border-radius: 8px;
-  border: 1px dashed rgba(200, 210, 220, 0.6);
+.search-bar-container-wrapper .Select-placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+  line-height: 50px !important;
+  padding-left: 15px; /* Slightly increased padding */
+  text-align: left; /* Align text to left */
 }
 
-.filter-checkbox-label {
-  display: flex;
-  align-items: center;
-  font-size: 0.9rem;
-  color: var(--text-medium);
-  cursor: pointer;
-  margin: 0;
-  gap: 8px;
+.search-bar-container-wrapper .Select-value-label {
+  color: white !important;
+  line-height: 50px !important;
 }
 
-.filter-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0;
+.search-bar-container-wrapper .Select-input {
+  height: 50px !important;
+  display: flex !important;
+  align-items: center !important;
 }
 
-.filter-checkbox input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: var(--primary);
-  margin: 0;
-  vertical-align: middle;
+.search-bar-container-wrapper .Select-input > input {
+  color: white !important;
+  caret-color: transparent !important;
+  height: 100% !important;
+  line-height: normal !important;
+  padding: 0 !important;
+  padding-left: 15px !important;
+  margin: 0 !important;
+  font-size: 1rem !important;
+  vertical-align: middle !important;
 }
 
-.identikit-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-top: 12px;
+.search-bar-container-wrapper .Select-menu-outer {
+  background-color: rgba(15, 23, 42, 0.98) !important;
+  border: 1px solid rgba(6, 182, 212, 0.3) !important;
+  border-radius: 12px !important;
+  margin-top: 8px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  color: white !important;
+  backdrop-filter: blur(10px) !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
-.btn-identikit-primary {
+
+/* Scrollbar personalizzata per il dropdown */
+.search-bar-container-wrapper .Select-menu-outer::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.search-bar-container-wrapper .Select-menu-outer::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 10px !important;
+  margin: 8px 0 !important;
+}
+
+.search-bar-container-wrapper .Select-menu-outer::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.5) !important;
+  border-radius: 10px !important;
+  transition: background 0.2s ease !important;
+}
+
+.search-bar-container-wrapper
+  .Select-menu-outer::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.8) !important;
+}
+
+/* Per Firefox */
+.search-bar-container-wrapper .Select-menu-outer {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(6, 182, 212, 0.5) rgba(255, 255, 255, 0.05) !important;
+}
+
+.search-bar-container-wrapper .Select-option {
+  background-color: transparent !important;
+  color: #e2e8f0 !important;
+  padding: 12px 16px !important;
+  border-left: 3px solid transparent !important;
+  transition: all 0.2s ease !important;
+  font-size: 0.95rem !important;
+}
+
+.search-bar-container-wrapper .Select-option:hover {
   background: linear-gradient(
-    180deg,
-    var(--secondary-active),
-    var(--primary-hover)
-  );
+    90deg,
+    rgba(6, 182, 212, 0.1),
+    transparent
+  ) !important;
+  border-left-color: #06b6d4 !important;
+  color: white !important;
+  padding-left: 20px !important;
+}
+
+.search-bar-container-wrapper .Select-option.is-focused {
+  background: linear-gradient(
+    90deg,
+    rgba(6, 182, 212, 0.15),
+    transparent
+  ) !important;
+  border-left-color: #06b6d4 !important;
+  color: white !important;
+}
+
+.search-button {
+  background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
   color: white;
   border: none;
-  padding: 8px 24px; /* Ridotto padding verticale, aumentato orizzontale */
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 0.95rem;
+  border-radius: 12px;
+  padding: 0 2rem;
+  height: 50px;
+  font-weight: 600;
+  font-size: 1rem;
   cursor: pointer;
-  min-width: 160px; /* Width maggiore */
-  height: 38px; /* Height ridotta */
-  transition: all 0.3s ease; /* Animazione fluida */
-}
-
-.btn-identikit-primary:hover {
-  background: linear-gradient(
-    180deg,
-    #2891b8,
-    /* Versione più scura di secondary-active */ #1a6a8a
-      /* Versione più scura di primary-hover */
-  );
-  transform: translateY(-2px); /* Leggero sollevamento */
-  box-shadow: 0 6px 20px rgba(30, 145, 184, 0.4); /* Ombra più pronunciata */
-}
-
-.btn-identikit-reset {
-  background: linear-gradient(180deg, #e74c3c, #c0392b);
-  color: white;
-  border: none;
-  padding: 8px 24px;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 0.95rem;
-  cursor: pointer;
-  min-width: 120px;
-  height: 38px;
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
   transition: all 0.3s ease;
-  margin-left: 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.btn-identikit-reset:hover {
-  background: linear-gradient(180deg, #c0392b, #a93226);
+.search-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.6);
 }
 
-.identikit-hint {
-  color: var(--text-gray);
-  font-size: 0.9rem;
-}
-
-/* Modern features grid styling */
-.identikit-preview {
+/* --- Slider --- */
+.slider-section {
+  width: 100%;
+  max-width: 600px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 1rem;
 }
 
-.identikit-features-placeholder {
-  padding: 2rem;
-  text-align: center;
-  color: var(--text-gray);
+.slider-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.slider-container-wrapper {
+  width: 100%;
+  padding: 0 10px;
+}
+
+.rc-slider-rail {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  height: 6px !important;
+}
+
+.rc-slider-track {
+  background-color: #06b6d4 !important;
+  height: 6px !important;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+}
+
+.rc-slider-handle {
+  border: 2px solid #06b6d4 !important;
+  background-color: #0f172a !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-top: -7px !important;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.8) !important;
+  opacity: 1 !important;
+}
+
+.rc-slider-dot {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  background-color: #1e293b !important;
+}
+
+.rc-slider-dot-active {
+  border-color: #06b6d4 !important;
+}
+
+.rc-slider-mark-text {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.rc-slider-mark-text-active {
+  color: #06b6d4 !important;
+}
+
+/* --- Toggles --- */
+.search-filters {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.toggle-container {
+  display: flex;
+  align-items: center;
+}
+
+/* Custom Checkbox Styling to look like Toggle */
+.toggle-switch input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 40px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.3s;
+  vertical-align: middle;
+  margin-right: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.toggle-switch input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+
+.toggle-switch input[type="checkbox"]:checked {
+  background: #06b6d4;
+  border-color: #06b6d4;
+}
+
+.toggle-switch input[type="checkbox"]:checked::after {
+  transform: translateX(18px);
+}
+
+.toggle-label {
+  color: rgba(255, 255, 255, 0.8);
   font-size: 0.95rem;
-  background: linear-gradient(
-    180deg,
-    rgba(250, 250, 250, 0.8),
-    rgba(255, 255, 255, 0.6)
-  );
+  cursor: pointer;
+}
+
+/* --- Layout Specifics --- */
+.layout-home {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* --- App Logo --- */
+#app-logo {
+  width: 150px;
+  margin: 2rem auto 1rem auto;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(14, 165, 233, 0.3));
+}
+
+/* --- Navbar (Segmented Control) --- */
+.segmented-control {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px; /* Increased radius */
+  padding: 6px; /* Increased padding */
+  margin: 0 auto 2rem auto;
+  display: flex;
+  width: fit-content;
+  justify-content: center;
+}
+
+.icon-nav-item {
+  color: rgba(255, 255, 255, 0.6);
+  background: transparent;
+  border: none;
+  padding: 12px 30px; /* Increased padding */
+  font-size: 1.2rem; /* Increased icon size */
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  border-right: none !important; /* Remove old border */
+}
+
+.icon-nav-item:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.icon-nav-item.active {
+  background-color: rgba(14, 165, 233, 0.2);
+  color: #0ea5e9;
+  box-shadow: none;
+}
+
+/* --- Identikit & Database Dark Mode Adaptations --- */
+/* --- Identikit Redesign --- */
+.identikit-header {
+  text-align: center;
+}
+
+.identikit-sub {
+  color: var(--text-medium);
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+}
+
+.identikit-grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 3rem;
+  width: 100%;
+  text-align: left;
+}
+
+@media (max-width: 900px) {
+  .identikit-grid-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Form Section */
+.identikit-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 2rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.section-title {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.5rem;
+}
+
+.section-subtitle {
+  color: var(--text-gray);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group.full-width {
+  flex: 100%;
+}
+
+.form-label {
+  color: var(--text-medium);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-left: 5px;
+}
+
+.identikit-dropdown .Select-control,
+.identikit-input {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 10px !important;
+  color: white !important;
+  height: 42px !important;
+}
+
+.identikit-dropdown .Select-placeholder,
+.identikit-dropdown .Select-value-label {
+  line-height: 42px !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.identikit-dropdown .Select-menu-outer {
+  background-color: #1e293b !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  z-index: 100 !important;
+}
+
+.identikit-input {
+  padding: 0 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Buttons */
+.identikit-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.identikit-actions .search-button {
+  flex: 2;
+  height: 45px;
+  font-size: 1rem;
+}
+
+.reset-button {
+  flex: 1;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
   border-radius: 12px;
-  border: 1px solid rgba(220, 225, 230, 0.6);
+  height: 45px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.reset-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  border-color: white;
+}
+
+/* Features Section */
+.identikit-features-section {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 2rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.features-container {
+  min-height: 200px;
 }
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 8px;
-  padding: 0.75rem;
-  background: linear-gradient(
-    180deg,
-    rgba(250, 250, 250, 0.8),
-    rgba(255, 255, 255, 0.6)
-  );
-  border-radius: 12px;
-  border: 1px solid rgba(220, 225, 230, 0.6);
-  box-shadow: 0 4px 12px rgba(20, 30, 40, 0.03);
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
 }
 
 .feature-card {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 10px;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid rgba(200, 210, 220, 0.6);
-  box-shadow: 0 2px 8px rgba(30, 40, 50, 0.04);
-  transition: all 0.2s ease;
+  gap: 0.5rem;
+  transition: transform 0.2s;
 }
 
 .feature-card:hover {
-  border-color: var(--primary);
-  box-shadow: 0 4px 12px rgba(30, 145, 184, 0.15);
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(14, 165, 233, 0.3);
   transform: translateY(-2px);
 }
 
 .feature-label {
   font-size: 0.8rem;
+  color: var(--text-medium);
   font-weight: 600;
-  color: var(--text-darker);
-  margin: 0;
-  line-height: 1.2;
+  text-transform: uppercase;
 }
 
 .feature-input {
-  width: 100% !important;
-  padding: 6px 8px !important;
-  border: 1px solid rgba(200, 210, 220, 0.8) !important;
+  background: rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 6px !important;
-  font-size: 0.85rem !important;
-  text-align: center !important;
-  transition: all 0.2s ease !important;
-  background: #fafafa !important;
-  height: 32px !important;
-}
-
-.feature-input:focus {
-  outline: none !important;
-  border-color: var(--primary) !important;
-  background: white !important;
-  box-shadow: 0 0 0 3px rgba(30, 145, 184, 0.1) !important;
-}
-
-.feature-input::placeholder {
-  color: rgba(150, 150, 150, 0.5) !important;
-}
-
-.identikit-preview .preview-card {
-  padding: 1rem;
-  border-radius: 12px;
-  background: linear-gradient(
-    180deg,
-    rgba(250, 250, 250, 0.8),
-    rgba(255, 255, 255, 0.6)
-  );
-  border: 1px solid rgba(220, 225, 230, 0.6);
-  min-height: 220px;
-  box-shadow: 0 6px 18px rgba(20, 30, 40, 0.03);
-}
-.preview-title {
-  margin: 0 0 8px 0;
-  color: var(--text-darker);
-}
-.preview-features {
-  color: var(--text-medium);
-  font-size: 0.95rem;
-  min-height: 160px;
-}
-
-/* Legend section styling */
-.identikit-legend {
+  color: white !important;
+  padding: 4px 8px !important;
+  font-size: 0.9rem !important;
   width: 100%;
-  max-width: 1200px;
-  margin-top: 1.5rem;
-  padding: 1.25rem;
-  background: linear-gradient(
-    180deg,
-    rgba(250, 250, 250, 0.95),
-    rgba(255, 255, 255, 0.9)
-  );
-  border-radius: 12px;
-  border: 1px solid rgba(220, 225, 230, 0.6);
-  box-shadow: 0 4px 16px rgba(20, 30, 40, 0.04);
 }
 
-.legend-title {
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
-  color: var(--text-darker);
+.identikit-features-placeholder {
+  color: var(--text-gray);
+  font-style: italic;
+  text-align: center;
+  margin-top: 3rem;
+}
+
+/* Legend */
+.identikit-legend-details {
+  margin-top: 2rem;
+  width: 100%;
+  text-align: left;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 1rem;
+}
+
+.legend-summary {
+  color: var(--text-medium);
+  cursor: pointer;
   font-weight: 600;
+  margin-bottom: 1rem;
+  outline: none;
 }
 
 .legend-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.8rem;
+  padding: 1rem 0;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.8rem;
-  background: white;
-  border-radius: 6px;
-  border: 1px solid rgba(200, 210, 220, 0.5);
-  transition: all 0.2s ease;
-}
-
-.legend-item:hover {
-  border-color: var(--primary);
-  box-shadow: 0 2px 8px rgba(30, 145, 184, 0.12);
+  gap: 0.8rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .legend-key {
+  color: #06b6d4;
   font-weight: 700;
   font-size: 0.85rem;
-  color: var(--primary);
-  min-width: 60px;
-  font-family: "Courier New", monospace;
+  min-width: 35px;
 }
 
 .legend-value {
-  font-size: 0.85rem;
-  color: var(--text-medium);
-  flex: 1;
-}
-
-@media (max-width: 900px) {
-  .identikit-main {
-    grid-template-columns: 1fr;
-  }
-  .identikit-form {
-    order: 2;
-  }
-  .identikit-preview {
-    order: 1;
-  }
-
-  /* Fix dropdown position on mobile for Identikit */
-  .identikit-control .Select-menu-outer {
-    position: absolute !important;
-    left: 0 !important;
-    right: 0 !important;
-    top: 100% !important;
-    width: 100% !important;
-    margin-top: 4px !important;
-  }
-}
-
-/* --- LAYOUT DATABASE (NUOVO E SEMPLICE) ---
-   Stack verticale: Navbar in alto, Tabella sotto.
-*/
-#main-container.layout-database {
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Centra la navbar e il contenuto */
-  height: 100vh;
-  width: 100%;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-/* 1. Logo */
-.layout-database #app-logo {
-  /* RIMOSSO display: visible; (invalido) */
-  width: 12%;
-  margin-top: 1%;
-}
-
-/* 2. Nascondi il Sottotitolo */
-.layout-database #app-subtitle {
-  display: none;
-}
-
-/* 3. Stile Navbar (in alto) - ACCORPATO */
-.layout-database #app-navbar {
-  flex-shrink: 0; /* Non rimpicciolirla */
-  margin-bottom: 1.5rem; /* Spostato qui */
-}
-
-/* 4. Contenuto (Tabella) - ACCORPATO */
-.layout-database #page-content {
-  width: 100%;
-  max-width: 1200px; /* Larghezza massima della tabella */
-  justify-self: center;
-  flex-grow: 1; /* <-- Occupa tutto lo spazio rimanente */
-  overflow-y: hidden; /* <-- Abilita lo scroll solo qui */
-  min-height: auto; /* Necessario per flex-grow */
-  padding: 0 2rem 1rem 2rem; /* Spazio ai lati */
-  margin-top: 0.5rem; /* Spostato qui */
-}
-
-/* --- Stili Componenti Database --- */
-
-/* Stile per il contenitore della pagina DB */
-.db-container {
-  width: 95%;
-  max-width: 1200px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 0 auto;
-}
-
-/* Barra dei Filtri */
-.db-filter-bar {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  background-color: var(--white-translucent);
-  border-radius: 0.75rem;
-  margin-bottom: 1rem;
-  width: 100%;
-  box-sizing: border-box;
-}
-.db-filter-input {
-  border: 1px solid var(--bg-accent);
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 1rem;
-  /* Aggiunte per coerenza */
-  height: 2.75rem; /* Stessa altezza dei dropdown */
-  box-sizing: border-box; /* Include padding/border */
-}
-.db-filter-input:focus {
-  outline: none;
-  border-color: var(--primary);
-}
-
-/* Box Lista Giocatori */
-.db-player-list-box {
-  background-color: var(--white);
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 6px -1px var(--shadow-light);
-  overflow: hidden; /* Per i bordi */
-  width: 100%; /* <-- AGGIUNTO: Forza la lista ad espandersi */
-  box-sizing: border-box; /* <-- AGGIUNTO: Per un padding corretto */
-}
-
-/* Riga Giocatore (Header e Corpo) */
-.player-row {
-  display: grid;
-  /* MODIFICATO: #, Nome(Icona+Testo), Pos, Età, Naz, Comp */
-  grid-template-columns: 0.4fr 2fr 1fr 0.5fr 0.5fr 1.5fr;
-  align-items: center;
-  padding: 0.6rem 1rem;
-  border-bottom: 1px solid var(--bg-accent);
-  gap: 0.5rem;
-}
-.player-row.header {
-  font-weight: 600;
   color: var(--text-gray);
   font-size: 0.8rem;
-  text-transform: uppercase;
-  background-color: var(--bg-main);
-  padding: 0.5rem 1rem;
-}
-.player-row:last-child {
-  border-bottom: none;
 }
 
-/* Stili Colonne */
-.row-index {
-  color: var(--text-gray);
-  font-size: 0.9rem;
-  text-align: left;
-}
-/* Stile per la nuova colonna Nome (che contiene icona+testo) */
-.row-name {
-  font-weight: 500;
-  color: var(--text-color);
-  text-align: left;
-  /* Aggiunto per allineare icona e testo */
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-/* Stile per l'icona DENTRO row-name */
-.row-icon {
-  color: var(--primary);
-  font-size: 1.2rem;
-}
-.row-pos,
-.row-age,
-.row-nat,
-.row-comp {
-  font-size: 0.9rem;
-  color: var(--text-gray);
-  text-align: center;
+/* Database Table Dark Mode */
+.player-row {
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-.player-rows {
-  width: 100%;
-}
-
-.db-empty-state {
-  padding: 1rem;
-  text-align: center;
-  color: var(--text-gray);
-}
-
-.layout-database .segmented-control .icon-nav-item {
-  padding: 0.5rem 1.5rem;
-  font-size: 1.1rem;
-}
-
-/* Paginazione */
-.pagination-controls {
-  display: flex;
-  justify-content: flex-end; /* A destra */
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  color: var(--text-gray);
-}
-.pagination-button {
-  background-color: var(--white);
-  border: 1px solid var(--bg-accent);
-  border-radius: 0.5rem;
-  width: 2.5rem;
-  height: 2.5rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.pagination-button:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-/* --- Stili per i Nuovi Dropdown Filtro --- */
-
-/* Applica flessibilità e stili di base al wrapper del dropdown */
-.db-filter-dropdown {
-  border: 1px solid var(--bg-accent);
-  border-radius: 0.5rem;
-  font-size: 0.9rem;
-  background-color: var(--white);
-  min-height: 2.75rem;
-  box-sizing: border-box;
-  padding: 0;
-  display: flex;
-  align-items: stretch;
-  overflow: visible;
-  position: relative; /* Riferimento per il menu dropdown interno */
-}
-.db-filter-dropdown > .Select {
-  flex: 1 1 auto;
-}
-.db-filter-dropdown .Select-control {
-  border: none !important;
-  box-shadow: none !important;
-  background-color: transparent !important;
-  min-height: 2.75rem;
-  height: 100%;
-  display: flex !important;
-  align-items: center !important;
-  padding: 0 0.75rem !important;
-  gap: 0.4rem;
-}
-.db-filter-dropdown .Select-placeholder,
-.db-filter-dropdown .Select-value,
-.db-filter-dropdown .Select-value-label,
-.db-filter-dropdown .Select-input,
-.db-filter-dropdown .Select-input > input {
-  display: flex !important;
-  align-items: center !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  line-height: 1.3 !important;
-  color: var(--text-gray);
-}
-.db-filter-dropdown .Select-placeholder,
-.db-filter-dropdown .Select-value,
-.db-filter-dropdown .Select-value-label {
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  justify-content: flex-start !important;
-  text-align: left !important;
-  padding-left: 0.45rem !important;
-  color: var(--text-color) !important;
-  white-space: normal !important;
-  font-size: 1rem !important;
-}
-.db-filter-dropdown .Select-placeholder {
+.player-row.header {
+  background-color: rgba(15, 23, 42, 0.8) !important;
   color: var(--text-gray) !important;
 }
-.db-filter-dropdown .Select-input {
-  flex: 0 0 auto !important;
-}
-.db-filter-dropdown .Select-clear-zone,
-.db-filter-dropdown .Select-arrow-zone,
-.db-filter-dropdown .Select-clear,
-.db-filter-dropdown .Select-arrow {
-  display: none !important;
-}
-.db-filter-dropdown .Select-menu-outer {
-  border-radius: 0.5rem;
-  border-color: var(--bg-accent);
-  box-shadow: 0 8px 16px var(--shadow-dropdown);
-  margin-top: 0.35rem;
-  overflow: hidden;
-  z-index: 5;
-  width: 100% !important;
+
+.row-name {
+  color: white !important;
 }
 
-/* Usiamo flex-grow (importanza), flex-shrink (restringimento), flex-basis (larghezza base) 
-*/
-
-/* 1. Nome: Base 30% (Leggermente più piccolo) */
-.db-filter-name {
-  flex: 1 1 30%;
-  min-width: 12rem;
-  max-width: 15rem;
+.pagination-button {
+  background-color: rgba(30, 41, 59, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
 }
 
-/* 2. Ruolo: (invariato) */
-.db-filter-role {
-  flex: 1 1 20%;
-  min-width: 12rem;
+/* Modal Dark Mode */
+/* --- Modern Modal Design --- */
+.modal-content {
+  background: rgba(
+    30,
+    41,
+    59,
+    0.95
+  ) !important; /* Darker, slightly transparent */
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  color: white !important;
+  font-family: "Outfit", sans-serif !important;
 }
 
-/* 3. Campionato: (invariato) */
-.db-filter-league {
-  flex: 1 1 20%;
-  min-width: 11rem;
+.modal-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 1.5rem 2rem !important;
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-radius: 24px 24px 0 0 !important;
 }
 
-/* 4. Posizione: (invariato) */
-.db-filter-pos {
-  flex: 1 1 15%;
-  min-width: 8rem;
+.modal-title {
+  font-weight: 700 !important;
+  font-size: 1.5rem !important;
+  color: white !important;
+  letter-spacing: -0.02em !important;
 }
 
-/* 5. Età: Due nuovi campi (piccoli) */
-.db-filter-age-min,
-.db-filter-age-max {
-  flex: 0 1 7.5%; /* Dividono lo spazio rimanente */
-  min-width: 7rem;
+.modal-body {
+  padding: 2rem !important;
 }
 
-.db-filter-sort {
-  flex: 1 1 12rem;
-  min-width: 9rem;
+.modal-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 1.5rem 2rem !important;
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-radius: 0 0 24px 24px !important;
 }
 
-/* --- Stili per Bottone Filtri Mobile --- */
-.mobile-filter-button {
-  display: none; /* Nascosto di default (su desktop) */
-  width: 90%;
-  max-width: 500px;
-  background-color: var(--white);
-  color: var(--primary);
-  border: 1px solid var(--bg-accent);
-  border-radius: 0.75rem;
-  padding: 0.75rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  margin-bottom: 1rem;
-  box-shadow: 0 4px 6px -1px var(--shadow-light);
-}
-.mobile-filter-button .fas {
-  margin-right: 0.5rem;
+.btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+  opacity: 0.7;
 }
 
-/* --- Stili per Info Card Giocatore (Nel Modal) --- */
+/* Modal Table Styling */
+/* Modal Table Styling */
+.modal-body .table {
+  color: white !important;
+  margin-bottom: 0 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.modal-body .table thead th {
+  background-color: rgba(15, 23, 42, 0.8) !important;
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 12px !important;
+  border-top: none !important;
+}
+
+.modal-body .table tbody td {
+  background-color: transparent !important;
+  color: white !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  padding: 12px !important;
+  font-size: 0.95rem !important;
+  vertical-align: middle !important;
+}
+
+.modal-body .table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+  color: white !important;
+}
+
+.modal-body .table-hover > tbody > tr:hover > * {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: white !important;
+}
+
+/* Modal Buttons */
+.modal-footer .btn {
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+  padding: 10px 20px !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.modal-footer .btn-light {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+.modal-footer .btn-light:hover,
+.modal-footer .btn-light.active {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+}
+
+.modal-footer .btn-primary {
+  background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3) !important;
+}
+
+.modal-footer .btn-primary:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(6, 182, 212, 0.4) !important;
+}
+
+.modal-footer .btn-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: white !important;
+}
+
+.modal-footer .btn-secondary {
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.modal-footer .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Selected Player Card in Modal */
+/* Selected Player Card in Modal */
 .player-info-card {
-  background-color: var(--bg-main);
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid var(--bg-accent);
+  background: linear-gradient(
+    145deg,
+    rgba(30, 41, 59, 0.6),
+    rgba(15, 23, 42, 0.8)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
 }
 
 .player-info-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  color: var(--text-gray);
-  font-size: 1.1rem;
-  border-bottom: 1px solid var(--border-light);
-  padding-bottom: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.player-info-header .fas {
-  color: var(--primary);
-  font-size: 1.5rem;
+  gap: 0.5rem;
+  color: #06b6d4;
+  margin-bottom: 0.5rem;
 }
 
 .player-info-header h5 {
   margin: 0;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   font-weight: 600;
-  font-size: 1.1rem;
 }
 
 .player-info-name {
-  font-size: 1.75rem;
+  font-size: 2.5rem;
   font-weight: 700;
-  color: var(--text-color);
-  margin-bottom: 1rem;
+  margin: 0;
+  background: linear-gradient(to right, #ffffff, #94a3b8);
+  -webkit-background-clip: text; /* This is the key property */
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.2;
 }
 
 .player-info-details {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 colonne */
-  gap: 1rem;
+  display: flex;
+  gap: 3rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .info-label {
-  font-size: 0.8rem;
-  color: var(--text-gray);
+  font-size: 0.75rem;
   text-transform: uppercase;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  font-weight: 600;
 }
 
 .info-value {
-  font-size: 1.1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+}
+
+/* --- Tab Transitions --- */
+@keyframes fadeSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-content-animated {
+  animation: fadeSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* --- Sliding Navbar Animation --- */
+.segmented-control {
+  position: relative;
+  padding: 4px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  display: flex;
+  width: fit-content;
+  justify-content: center;
+  margin: 0 auto 2rem auto;
+}
+
+.icon-nav-item {
+  position: relative;
+  z-index: 2;
+  background: transparent !important;
+  border: none;
+  padding: 12px 30px;
+  width: 100px; /* Fixed width for calculation */
+  font-size: 1.2rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: color 0.3s;
+  color: rgba(255, 255, 255, 0.6);
+  box-shadow: none !important;
+}
+
+.icon-nav-item:hover {
+  color: white;
+  background: transparent !important;
+}
+
+.icon-nav-item.active {
+  color: #0ea5e9;
+  background: transparent !important;
+}
+
+.nav-slider {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 100px; /* Matches item width */
+  height: calc(100% - 8px);
+  background-color: rgba(14, 165, 233, 0.2);
+  border-radius: 12px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  box-shadow: 0 0 15px rgba(14, 165, 233, 0.2);
+}
+
+/* Slider Positions */
+.segmented-control.tab-0 .nav-slider {
+  transform: translateX(0);
+}
+
+.segmented-control.tab-1 .nav-slider {
+  transform: translateX(100px);
+}
+
+.segmented-control.tab-2 .nav-slider {
+  transform: translateX(200px);
+}
+
+/* --- Database Redesign Styles --- */
+
+.db-layout-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 30px !important;
+}
+
+.db-header {
+  text-align: center;
+}
+
+/* Filters Container */
+.db-filters-container {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%; /* Ensure full width */
+}
+
+/* Force glass-card-content to full width in DB layout */
+.db-layout-wrapper .glass-card-content {
+  width: 100%;
+}
+
+/* Search Row */
+.db-search-row {
+  position: relative;
+  width: 100%;
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-medium);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.db-search-input {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  padding: 12px 12px 12px 45px !important; /* Space for icon */
+  color: white !important;
+  font-size: 1rem !important;
+  transition: all 0.3s ease;
+}
+
+.db-search-input:focus {
+  background: rgba(15, 23, 42, 0.8) !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+  outline: none;
+}
+
+/* Filters Grid */
+.db-filters-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1.5fr 0.8fr 0.8fr 1.5fr 1.2fr; /* Force horizontal layout */
+  gap: 12px;
+  align-items: end;
+  width: 100%;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-label {
+  font-size: 0.85rem;
+  color: var(--text-medium);
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+/* Custom Dropdown Styling */
+.db-dropdown .Select-control {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 10px !important;
+  height: 42px !important;
+}
+
+.db-dropdown .Select-placeholder,
+.db-dropdown .Select-value-label {
+  line-height: 42px !important;
+  padding-left: 10px !important;
+  color: white !important;
+}
+
+.db-dropdown .Select-menu-outer {
+  background-color: #1e293b !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 10px !important;
+  margin-top: 5px !important;
+}
+
+.db-dropdown .Select-option {
+  background-color: transparent !important;
+  color: var(--text-dark) !important;
+  padding: 10px !important;
+}
+
+.db-dropdown .Select-option:hover {
+  background-color: rgba(14, 165, 233, 0.1) !important;
+  color: white !important;
+}
+
+/* Number Inputs */
+.db-input-number {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 10px !important;
+  padding: 8px 12px !important;
+  color: white !important;
+  height: 42px !important;
+  width: 100%;
+}
+
+/* Results Table */
+.db-results-wrapper {
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  margin-top: 1rem;
+  width: 100%; /* Ensure full width */
+}
+
+.db-table-header {
+  display: grid;
+  grid-template-columns: 0.5fr 2fr 1fr 0.8fr 0.8fr 1.5fr; /* Matches row structure */
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.col-header {
+  color: var(--text-medium);
   font-weight: 600;
-  color: var(--text-darker);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* --- Fix Stile Tabella nel Modal --- */
-/* Assicura che la tabella non sia troppo larga e sia leggibile */
-.modal-body .table {
-  width: 100% !important;
-  font-size: 0.9rem; /* Rendi il testo della tabella leggermente più piccolo */
+.db-table-body {
+  max-height: 600px;
+  overflow-y: auto;
 }
 
-/* --- 📱 Media Queries per Responsive Design --- */
-/* Si applica a tablet e telefoni (sotto 768px) */
+@keyframes tableRowFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
-@media (max-width: 768px) {
-  /* --- Globale --- */
+/* Table Rows (Reusing/Overriding existing player-row styles) */
+.player-row {
+  display: grid !important; /* Force grid */
+  grid-template-columns: 0.5fr 2fr 1fr 0.8fr 0.8fr 1.5fr !important;
+  padding: 1rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  align-items: center;
+  transition: background 0.2s;
+  text-decoration: none;
+  color: white;
+  animation: tableRowFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
 
-  /* Riduci il padding laterale su mobile */
-  .layout-database #page-content,
-  #page-content {
-    padding-left: 1rem;
-    padding-right: 1rem;
+.player-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.player-row span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Pagination Footer */
+.db-pagination-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pagination-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-btn:hover {
+  background: var(--primary);
+  transform: scale(1.1);
+}
+
+.pagination-info {
+  color: var(--text-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scrollbar for table */
+.db-table-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.db-table-body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.db-table-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.db-table-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.row-icon {
+  margin-right: 12px;
+  color: var(--primary);
+}
+
+/* ========================================
+   RESPONSIVE MEDIA QUERIES - SEARCH PLAYER SECTION
+   ======================================== */
+
+/* --- MOBILE: Max 767px --- */
+@media (max-width: 767px) {
+  /* Base adjustments for mobile */
+  html,
+  body {
+    font-size: 14px;
   }
 
-  /* --- Home Page (Ricerca) --- */
+  /* Glass Card - General */
+  .glass-card {
+    padding: 20px;
+    width: 95%;
+    margin: 1rem auto;
+    border-radius: 16px;
+  }
 
+  .glass-card-content {
+    gap: 1.5rem;
+  }
+
+  .glass-subtitle {
+    font-size: 1.2rem;
+    line-height: 1.3;
+  }
+
+  /* Logo */
   #app-logo {
-    width: 250px; /* Riduci logo */
-    margin-top: 0;
-  }
-  .app-subtitle {
-    margin-top: -1rem;
-    font-size: 1rem;
+    width: 100px;
+    margin: 1.5rem auto 1rem auto;
   }
 
-  /* Rendi la barra di ricerca e lo slider fluidi */
-  .search-bar-container-wrapper,
-  .slider-container-wrapper {
-    width: 100vw; /* Usa il 100% della larghezza dello schermo per massimizzare lo spazio */
-    box-sizing: border-box;
-    padding-left: 8px; /* lascia un piccolo margine ai lati */
-    padding-right: 8px;
-  }
-
-  /* --- NUOVO: Adatta il contenitore barra+bottone su mobile --- */
-  .search-button-container {
-    width: 100vw; /* Occupa tutta la viewport per massimizzare la barra */
-    padding: 0 8px; /* Margine interno per non toccare i bordi dello schermo */
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column; /* Impila verticalmente */
-    gap: 0.75rem; /* Riduci lo spazio */
-    align-items: center;
-  }
-
-  /* Assicura che i menu dropdown usino tutta la larghezza disponibile su mobile */
-  .search-bar-container-wrapper .Select-menu-outer,
-  .db-filter-dropdown .Select-menu-outer {
-    position: absolute;
-    left: 0;
-    right: 0;
-    min-width: 100%;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-
-  /* Mobile: nascondi il menu a tendina vero e proprio e l'icona freccia,
-     lasciando visibile l'input per permettere la ricerca testuale semplice. */
-  .search-bar-container-wrapper .Select-menu-outer,
-  .search-bar-container-wrapper .Select-arrow-zone,
-  .search-bar-container-wrapper .Select-option,
-  .search-bar-container-wrapper .Select-menu-outer.is-open {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-  }
-
-  /* Rendi la control bar più simile ad un semplice input */
-  .search-bar-container-wrapper .Select-control {
-    cursor: text;
-    box-shadow: none;
-    border: 1px solid var(--bg-accent);
-    background-color: var(--white);
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-
-  /* Assicura che l'input interno occupi tutta la larghezza disponibile */
-  .search-bar-container-wrapper .Select-input > input {
-    width: 100% !important;
-    padding: 0.5rem 0 !important;
-    font-size: 1rem;
-  }
-
-  /* Nascondi anche l'eventuale icona di dropdown nel bottone di ricerca */
-  .search-button .fas.fa-caret-down,
-  .search-button .Select-arrow-zone {
-    display: none !important;
-  }
-
-  .search-button-container .search-bar-container-wrapper {
-    width: 100%; /* La barra occupa il 100% */
-  }
-
-  /* Bottone: ancora più piccolo su mobile, centrato */
-  .search-button {
-    width: 45%;
-    max-width: 260px;
-    justify-content: center; /* Centra testo e icona */
-    padding: 0.6rem 0.9rem;
-    align-self: center; /* Centra il bottone nella colonna */
-  }
-
-  /* --- Navbar Responsive --- */
-  /* Riduci dimensione icone e padding per schermi piccoli */
+  /* Navbar - Responsive */
   .segmented-control {
-    margin-bottom: 1rem; /* Riduci margine inferiore */
+    padding: 4px;
+    border-radius: 12px;
   }
 
   .icon-nav-item {
-    font-size: 1.2rem; /* Icone più grandi su mobile */
-    padding: 0.75rem 1rem; /* Padding maggiore per tocco mobile */
+    padding: 10px 20px;
+    width: 70px;
+    font-size: 1rem;
   }
 
-  /* ===================================
-   TOOLTIP PER FEATURE STATS
-   =================================== */
-  .feature-label[title]:hover::after,
-  .feature-input[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #333;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    white-space: nowrap;
-    z-index: 1000;
-    pointer-events: none;
-    margin-bottom: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  .nav-slider {
+    width: 70px;
   }
 
-  .feature-label[title]:hover::before,
-  .feature-input[title]:hover::before {
-    content: "";
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-top-color: #333;
-    margin-bottom: 2px;
-    z-index: 1001;
+  .segmented-control.tab-1 .nav-slider {
+    transform: translateX(70px);
   }
 
-  .feature-card {
-    position: relative;
+  .segmented-control.tab-2 .nav-slider {
+    transform: translateX(140px);
   }
 
-  .feature-label[title],
-  .feature-input[title] {
-    cursor: help;
+  /* ===== SEARCH PLAYER SECTION ===== */
+
+  /* Search Bar + Button Container - Stack Vertically */
+  .search-button-container {
+    flex-direction: column;
+    gap: 1rem;
   }
 
-  /* Centra verticalmente il placeholder/text nella search bar su mobile */
+  .search-bar-container-wrapper {
+    width: 100%;
+    min-width: 300px;
+  }
+
   .search-bar-container-wrapper .Select-control {
-    min-height: 42px;
-    height: 42px;
-    display: flex;
-    align-items: center;
-    padding-top: 0.25rem; /* piccola finezza per bilanciare l'input interno */
-    padding-bottom: 0.25rem;
+    height: 45px !important;
+    width: 100% !important;
   }
 
   .search-bar-container-wrapper .Select-placeholder {
-    display: flex;
-    align-items: center;
-    height: 100%;
-    line-height: 1; /* evita effetti di baseline */
-    padding: 0 8px;
+    line-height: 45px !important;
+    padding-left: 12px;
+    font-size: 0.9rem;
   }
 
-  .search-bar-container-wrapper .Select-value-container,
   .search-bar-container-wrapper .Select-value-label {
-    display: flex !important;
-    align-items: center !important;
-    height: 100% !important;
+    line-height: 45px !important;
   }
 
-  /* --- Database Page --- */
-
-  /* Forza i filtri ad andare a capo (stack verticale) */
-  .db-filter-bar {
-    flex-wrap: wrap; /* Permette ai filtri di andare a capo */
-  }
-
-  /* Tutti i filtri prendono il 100% della larghezza su mobile */
-  /* Stile mobile per TUTTI i filtri */
-  .db-filter-input,
-  .db-filter-dropdown {
-    /* Resetta le proprietà flex del desktop */
-    flex: initial !important;
-
-    /* Forza la larghezza piena per entrambi */
+  /* Increase dropdown menu width for better usability */
+  .search-bar-container-wrapper .Select-menu-outer {
     width: 100% !important;
     min-width: 100% !important;
   }
-  /* --- Tabella Database (Responsive Semplice) --- */
 
-  /* Riduci il padding della tabella su mobile */
-  .db-player-list-box {
-    padding: 0 0.5rem;
-  }
-  .player-row {
-    padding: 0.75rem 0.5rem; /* Riduci padding laterale */
-    gap: 0.5rem;
-
-    /* MODIFICA: Rimuovi le colonne 5 e 6 (Nazione, Campionato) */
-    grid-template-columns: 0.4fr 2fr 1fr 0.5fr;
+  .search-button {
+    width: 30%;
+    min-width: 200px;
+    padding: 0 1.5rem;
+    height: 45px;
+    font-size: 0.95rem;
   }
 
-  /* ACCORPATO: Nascondi le colonne rimosse (header E corpo) */
-  .player-row .row-nat,
-  .player-row .row-comp {
-    display: none;
+  /* Slider Section - Mobile optimized */
+  .slider-section {
+    max-width: 100%;
   }
 
-  /* Riduci il font per farci stare il contenuto */
-  .row-name {
+  .slider-label {
     font-size: 0.9rem;
   }
-  .row-pos,
-  .row-age,
-  .row-nat,
-  .row-comp {
+
+  .slider-container-wrapper {
+    padding: 0 5px;
+  }
+
+  .rc-slider-handle {
+    width: 18px !important;
+    height: 18px !important;
+    margin-top: -6px !important;
+  }
+
+  .rc-slider-mark-text {
+    font-size: 0.75rem !important;
+  }
+
+  /* Search Filters - Toggles Stack Vertically */
+  .search-filters {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1rem !important;
+    margin-top: 0.5rem;
+  }
+
+  .toggle-container {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .toggle-label {
     font-size: 0.85rem;
+    white-space: nowrap;
   }
 
-  /* Centra la paginazione */
-  .pagination-controls {
-    justify-content: center;
+  /* Assicura che le checkbox si adattino bene */
+  .custom-toggle {
+    min-width: 40px;
   }
 
-  /* 1. Nascondi la barra dei filtri desktop */
-  .db-filter-bar {
-    display: none;
-  }
-
-  /* 2. Mostra il bottone mobile */
-  .mobile-filter-button {
-    display: block; /* Mostra il bottone */
-  }
-
-  /* 3. Stile per la barra quando aperta (dalla callback) */
-  .db-filter-bar[style*="display: flex"] {
-    display: flex !important;
-    flex-direction: column !important; /* Forza lo stack verticale */
+  /* Output Display */
+  #output-display {
+    bottom: 20px;
+    font-size: 0.9rem;
     width: 90%;
-    max-width: 500px;
-  }
-}
-
-/* Fallback mobile per dropdown renderizzati in portal: occupa la viewport */
-@media (max-width: 768px) {
-  /* Fix dropdown position for Identikit section - keeps them below the field */
-  .identikit-control .Select-menu-outer {
-    position: absolute !important;
-    left: 0 !important;
-    right: 0 !important;
-    top: 100% !important;
-    width: 100% !important;
-    margin-top: 4px !important;
-    z-index: 9999 !important;
-  }
-
-  /* For other sections (search, database) - use fixed viewport positioning */
-  .search-bar-container-wrapper .Select-menu-outer,
-  .db-filter-dropdown .Select-menu-outer {
-    position: fixed !important;
-    left: 5vw !important;
-    right: 5vw !important;
-    top: auto !important;
-    width: auto !important;
-    min-width: auto !important;
-    max-width: 90vw !important;
-    box-sizing: border-box !important;
-    z-index: 9999 !important;
   }
 }

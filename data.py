@@ -6,8 +6,22 @@ import math
 import numpy as np # type: ignore
 import sys
 
-# --- Configurazione Percorsi ---
-BASE_DIR = Path(__file__).resolve().parent
+# --- Funzione per gestire i percorsi sia in Dev che in .Exe ---
+def get_base_path():
+    """
+    Restituisce il percorso base corretto.
+    Se siamo in un eseguibile PyInstaller, usa sys._MEIPASS.
+    Se siamo in sviluppo locale, usa la cartella corrente del file.
+    """
+    if getattr(sys, 'frozen', False):
+        # Se siamo compilati in un .exe
+        return Path(sys._MEIPASS)
+    else:
+        # Se stiamo eseguendo lo script python normalmente
+        return Path(__file__).resolve().parent
+
+# Definisci BASE_DIR usando la funzione
+BASE_DIR = get_base_path()
 
 # --- Costanti ---
 ROWS_PER_PAGE = 7 
@@ -22,30 +36,43 @@ SORT_BY_OPTIONS = [
     {'label': 'Nazionalità (Z-A)', 'value': 'nation_desc'},
 ]
 
-DATA_PATH = BASE_DIR / 'data' / 'dataset_master_unified_2526.parquet'
+# In eseguibile, i file data sono dentro _MEIPASS/data, non fuori
+if getattr(sys, 'frozen', False):
+    DATA_PATH = BASE_DIR / 'data' / 'dataset_master_unified_2526.parquet'
+else:
+    DATA_PATH = BASE_DIR.parent / 'data' / 'dataset_master_unified_2526.parquet'
+
 ARTIFACTS_DIR = BASE_DIR / 'artifacts'
 
 # --- Variabili Globali (Inizialmente vuote per Lazy Loading) ---
 DATABASE_DF = pd.DataFrame()
 all_roles_options = []
 PLAYER_SEARCH_OPTIONS = []
+LOADING_PROGRESS = 0
+LOADING_STATUS = "In attesa..."
+
+def set_progress(value, message):
+    global LOADING_PROGRESS, LOADING_STATUS
+    LOADING_PROGRESS = value
+    LOADING_STATUS = message
+    print(f"[{value}%] {message}")
 
 def load_data():
     """
-    Carica i dati pesanti (CSV, Joblib) in modo sincrono.
+    Carica i dati pesanti (CSV, Joblib) solo quando richiesto.
     Popola le variabili globali DATABASE_DF, all_roles_options, PLAYER_SEARCH_OPTIONS.
     """
     global DATABASE_DF, all_roles_options, PLAYER_SEARCH_OPTIONS
     
     if not DATABASE_DF.empty:
-        print("Dati già caricati.")
+        set_progress(100, "Dati già caricati.")
         return # Già caricati
 
-    print("Avvio caricamento dati...")
+    set_progress(5, "Avvio caricamento dati...")
     
     # 1. Carica PCA Dataframes per valid_player_ids
     try:
-        print("Caricamento modelli PCA...")
+        set_progress(10, "Caricamento modelli PCA...")
         PCA_DATAFRAMES = joblib.load(ARTIFACTS_DIR / 'pca_dataframes.joblib')
     except Exception as e:
         print(f"Attenzione: Impossibile caricare pca_dataframes.joblib. {e}")
@@ -59,40 +86,50 @@ def load_data():
     print(f"--- Trovati {len(valid_player_ids)} giocatori validi (900+ min) ---")
 
     # 2. Carica DATABASE_DF (con Caching)
-    print("Caricamento Database Giocatori...")
+    set_progress(20, "Caricamento Database Giocatori...")
     
     # Percorso per la cache del dataframe processato
-    # cache_path = ARTIFACTS_DIR / 'database_df_cache.joblib'
+    cache_path = ARTIFACTS_DIR / 'database_df_cache.joblib'
     
     # Controlla se esiste una cache valida
     loaded_from_cache = False
-    # if cache_path.exists():
-    #     try:
-    #         print("Trovata cache dati, caricamento veloce...")
-    #         DATABASE_DF = joblib.load(cache_path)
-    #         loaded_from_cache = True
-    #         print("--- DATABASE_DF caricato dalla cache! ---")
-    #     except Exception as e:
-    #         print(f"Errore caricamento cache: {e}. Si procede con il caricamento standard.")
-    
+    if cache_path.exists():
+        # Verifica se il file parquet è più recente della cache
+        try:
+            parquet_mtime = DATA_PATH.stat().st_mtime
+            cache_mtime = cache_path.stat().st_mtime
+            
+            if parquet_mtime > cache_mtime:
+                print("--- Cache obsoleta (dataset aggiornato). Ricaricamento... ---")
+            else:
+                try:
+                    set_progress(25, "Trovata cache dati, caricamento veloce...")
+                    DATABASE_DF = joblib.load(cache_path)
+                    loaded_from_cache = True
+                    print("--- DATABASE_DF caricato dalla cache! ---")
+                except Exception as e:
+                    print(f"Errore caricamento cache: {e}. Si procede con il caricamento standard.")
+        except Exception as e:
+             print(f"Errore controllo timestamp cache: {e}")
+
     if not loaded_from_cache:
-        print("Lettura file Parquet (potrebbe richiedere tempo)...")
+        set_progress(30, "Lettura file Parquet (potrebbe richiedere tempo)...")
         DATABASE_DF = _prepare_database_dataframe(PCA_DATAFRAMES)
         
         # Salva in cache per la prossima volta
-        # try:
-        #     print("Salvataggio cache per avvii futuri...")
-        #     joblib.dump(DATABASE_DF, cache_path)
-        #     print("--- DATABASE_DF salvato in cache. ---")
-        # except Exception as e:
-        #     print(f"Impossibile salvare la cache: {e}")
+        try:
+            set_progress(45, "Salvataggio cache per avvii futuri...")
+            joblib.dump(DATABASE_DF, cache_path)
+            print("--- DATABASE_DF salvato in cache. ---")
+        except Exception as e:
+            print(f"Impossibile salvare la cache: {e}")
     
     # 3. Carica all_roles_options
-    print("Configurazione ruoli...")
+    set_progress(50, "Configurazione ruoli...")
     all_roles_options = get_all_roles_options()
 
     # 4. Crea PLAYER_SEARCH_OPTIONS
-    print("Indicizzazione giocatori per la ricerca...")
+    set_progress(60, "Indicizzazione giocatori per la ricerca...")
     if not DATABASE_DF.empty and valid_player_ids:
         searchable_players_df = DATABASE_DF[DATABASE_DF['ID_Univoco'].isin(valid_player_ids)].copy()
         all_players_df = searchable_players_df[['ID_Univoco', 'Player', 'Team', 'Comp']].copy()
@@ -108,7 +145,7 @@ def load_data():
     else:
         PLAYER_SEARCH_OPTIONS = []
     
-    print("Caricamento Dati completato.")
+    set_progress(70, "Caricamento Dati completato.")
 
 # --- Funzioni Helper ---
 
@@ -174,7 +211,7 @@ def _prepare_database_dataframe(pca_dataframes=None) -> pd.DataFrame:
     except Exception:
         return pd.DataFrame()
 
-    columns_needed = ['ID_Univoco', 'Player', 'Pos', 'Age', 'Nation', 'Comp', 'Team']
+    columns_needed = ['ID_Univoco', 'Player', 'Pos', 'Age', 'Nation', 'Comp', 'Team', 'Ht.', 'Wt.']
     existing_columns = [col for col in columns_needed if col in raw_df.columns]
     df = raw_df[existing_columns].copy()
 

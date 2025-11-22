@@ -13,7 +13,11 @@ from pathlib import Path
 
 # --- Configurazione Percorsi ---
 BASE_DIR = Path(__file__).resolve().parent
-FULL_DATASET_PATH = BASE_DIR / 'data' / 'dataset_master_unified_2526.parquet'
+
+if getattr(sys, 'frozen', False):
+    FULL_DATASET_PATH = BASE_DIR / 'data' / 'dataset_master_unified_2526.parquet'
+else:
+    FULL_DATASET_PATH = BASE_DIR.parent / 'data' / 'dataset_master_unified_2526.parquet'
 
 # --- Importazione e Caricamento Dati Sincrono ---
 import data
@@ -101,11 +105,7 @@ def validate_feature_value(feature_name, value):
 main_layout_content = create_main_layout()
 
 app.layout = html.Div([
-    dcc.Loading(
-        id="loading-spinner",
-        type="default",
-        children=html.Div(id='main-content-wrapper', children=main_layout_content)
-    )
+    html.Div(id='main-content-wrapper', children=main_layout_content)
 ])
 
 # --- Callback 1: Cambiare Scheda (Tab) ---
@@ -116,15 +116,14 @@ app.layout = html.Div([
     Output('tab-search', 'className'),
     Output('tab-identikit', 'className'),
     Output('tab-database', 'className'),
+    Output('app-navbar', 'className'),
     Output('main-container', 'className'),
-    Output('output-display', 'children', allow_duplicate=True),
     Input('tab-search', 'n_clicks'),
     Input('tab-identikit', 'n_clicks'),
     Input('tab-database', 'n_clicks'),
-    State('output-display', 'children'),
     prevent_initial_call='initial_duplicate'
 )
-def display_page_content(search_clicks, identikit_clicks, database_clicks, current_output):
+def display_page_content(search_clicks, identikit_clicks, database_clicks):
     # Get the triggered ID
     triggered_id = dash.ctx.triggered_id 
     
@@ -137,8 +136,8 @@ def display_page_content(search_clicks, identikit_clicks, database_clicks, curre
             'icon-nav-item', 
             'icon-nav-item active', 
             'icon-nav-item', 
-            'layout-identikit', 
-            None
+            'segmented-control tab-1', # Navbar class
+            'layout-identikit'
         )
     
     elif triggered_id == 'tab-database':
@@ -150,8 +149,8 @@ def display_page_content(search_clicks, identikit_clicks, database_clicks, curre
             'icon-nav-item', 
             'icon-nav-item', 
             'icon-nav-item active', 
-            'layout-database', 
-            None
+            'segmented-control tab-2', # Navbar class
+            'layout-database'
         )
     
     elif triggered_id == 'tab-search':
@@ -163,12 +162,11 @@ def display_page_content(search_clicks, identikit_clicks, database_clicks, curre
             'icon-nav-item active', 
             'icon-nav-item', 
             'icon-nav-item', 
-            'layout-home', 
-            current_output
+            'segmented-control tab-0', # Navbar class
+            'layout-home'
         )
     
     # Default (initial load): show search tab
-    default_message = "Seleziona un giocatore e premi 'Trova Simili' per iniziare."
     return (
         {'display': 'block'}, # search
         {'display': 'none'},  # identikit
@@ -176,8 +174,8 @@ def display_page_content(search_clicks, identikit_clicks, database_clicks, curre
         'icon-nav-item active', 
         'icon-nav-item', 
         'icon-nav-item', 
-        'layout-home', 
-        default_message
+        'segmented-control tab-0', # Navbar class
+        'layout-home'
     )
 
 
@@ -326,17 +324,18 @@ def reset_identikit_form(reset_clicks, feature_ids):
 @app.callback(
     Output('results-modal', 'is_open'),
     Output('search-trigger-store', 'data'),
-    Output('output-display', 'children', allow_duplicate=True),
     Output('modal-results-content', 'children'), # Output per pulire il contenuto
     Input('search-button', 'n_clicks'),
     Input('identikit-find-button', 'n_clicks'),
     Input('modal-close-button', 'n_clicks'),
     State('search-bar', 'value'),
     State('k-slider', 'value'),
+    State('search-filter-height', 'value'),
+    State('search-filter-weight', 'value'),
     State('results-modal', 'is_open'),
     prevent_initial_call=True
 )
-def toggle_results_modal(search_clicks, identikit_clicks, close_clicks, selected_id_univoco, k_value, is_open):
+def toggle_results_modal(search_clicks, identikit_clicks, close_clicks, selected_id_univoco, k_value, filter_height, filter_weight, is_open):
     """
     Gestisce l'apertura e la chiusura del modal.
     Passa anche i dati di ricerca al dcc.Store.
@@ -352,34 +351,31 @@ def toggle_results_modal(search_clicks, identikit_clicks, close_clicks, selected
         # --- Caso 1: L'utente preme "Trova Simili" (Search Player) ---
         if triggered_id == 'search-button':
             if not selected_id_univoco:
-                # Se non ha selezionato un giocatore, mostra errore e non aprire
-                msg = "Per favore, seleziona un giocatore dalla barra di ricerca prima di premere 'Trova Simili'."
-                return False, dash.no_update, msg, dash.no_update
+                # Se non ha selezionato un giocatore, non aprire il modal
+                return False, dash.no_update, dash.no_update
             
             # Valida k_value
             try:
                 k_val = int(k_value) if k_value else 10
                 if k_val < 1 or k_val > 100:
-                    msg = "Il numero di giocatori simili deve essere tra 1 e 100."
-                    return False, dash.no_update, msg, dash.no_update
+                    return False, dash.no_update, dash.no_update
             except (ValueError, TypeError):
-                msg = "Valore non valido per il numero di giocatori simili."
-                return False, dash.no_update, msg, dash.no_update
+                return False, dash.no_update, dash.no_update
             
             # Se ha selezionato, apri il modal e salva i dati per la ricerca
             search_data = {'id_univoco': str(selected_id_univoco), 'k': k_val}
-            # Pulisce il messaggio di errore/default e il contenuto precedente del modal
-            return True, search_data, None, None
+            # Pulisce il contenuto precedente del modal
+            return True, search_data, None
         
         # --- Caso 2: L'utente preme "Cerca" (Identikit) ---
         if triggered_id == 'identikit-find-button':
             # Apri il modal - la ricerca verrà eseguita dal callback run_similarity_calculation
-            return True, dash.no_update, None, None
+            return True, dash.no_update, None
 
         # --- Caso 3: L'utente preme "Chiudi" sul modal ---
         if triggered_id == 'modal-close-button':
             # Chiudi il modal, cancella i dati di ricerca e il contenuto
-            return False, None, dash.no_update, None
+            return False, None, None
 
         raise PreventUpdate
     
@@ -389,8 +385,7 @@ def toggle_results_modal(search_clicks, identikit_clicks, close_clicks, selected
         print(f"Errore in toggle_results_modal: {e}")
         import traceback
         traceback.print_exc()
-        error_msg = "Si è verificato un errore nell'apertura del modal. Riprova."
-        return False, dash.no_update, error_msg, dash.no_update
+        return False, dash.no_update, dash.no_update
 
 
 # --- Callback 2b: Calcolo Similarità -> Salvataggio nello Store ---
@@ -405,12 +400,14 @@ def toggle_results_modal(search_clicks, identikit_clicks, close_clicks, selected
     State('identikit-league', 'value'),
     State('search-filter-nation', 'value'),
     State('search-filter-comp', 'value'),
+    State('search-filter-height', 'value'),
+    State('search-filter-weight', 'value'),
     State({'type': 'identikit-feature', 'index': ALL}, 'value'),
     State({'type': 'identikit-feature', 'index': ALL}, 'id'),
     State('k-slider', 'value'),
     prevent_initial_call=True,
 )
-def run_similarity_calculation(search_data, identikit_n_clicks, pos_value, cluster_value, age_value, nation_value, league_value, filter_nation_search, filter_comp_search, feature_values, feature_ids, k_value):
+def run_similarity_calculation(search_data, identikit_n_clicks, pos_value, cluster_value, age_value, nation_value, league_value, filter_nation_search, filter_comp_search, filter_height_search, filter_weight_search, feature_values, feature_ids, k_value):
     """
     Unified callback handling both search-by-player (via `search-trigger-store`) and
     Identikit submissions (via `identikit-find-button`). Distinguishes the trigger
@@ -475,9 +472,9 @@ def run_similarity_calculation(search_data, identikit_n_clicks, pos_value, clust
                 return {'error': f"Giocatore con ID {player_id} non trovato."}
             player_data = player_row.iloc[0].to_dict()
 
-            # Richiedi molti più risultati per compensare filtri (fino a 50)
-            # In questo modo dopo il filtraggio avremo abbastanza giocatori per raggiungere k
-            k_search = min(50, k_base * 5) if (filter_nation_search and 'filter' in filter_nation_search) or (filter_comp_search and 'filter' in filter_comp_search) else k_base
+            # Cerca sempre un grande numero di giocatori per garantire risultati abbondanti dopo i filtri
+            # Questo assicura che anche con filtri molto restrittivi avremo sempre K risultati
+            k_search = 1000  # Cerca sempre 1000 giocatori simili, poi filtra e prendi i top K
 
             results_df, source_player_style, target_coords = engine.find_similar_players_by_id(player_id, k=k_search)
 
@@ -489,13 +486,18 @@ def run_similarity_calculation(search_data, identikit_n_clicks, pos_value, clust
 
             results_df['ID_Univoco'] = results_df['ID_Univoco'].astype(str)
             
-            # Merge con DATABASE_DF per aggiungere DisplayAge, e assicurarci di avere Nation/Comp
+            # Merge con DATABASE_DF per aggiungere DisplayAge, Nation/Comp e attributi fisici (Ht., Wt.)
             # Se Comp esiste già in results_df, rinominala temporaneamente per evitare conflitti
             db_cols = ['ID_Univoco', 'DisplayAge']
             if 'Nation' not in results_df.columns:
                 db_cols.append('Nation')
             if 'Comp' not in results_df.columns:
                 db_cols.append('Comp')
+            # Aggiungi sempre Ht. e Wt. per i filtri fisici
+            if 'Ht.' not in results_df.columns:
+                db_cols.append('Ht.')
+            if 'Wt.' not in results_df.columns:
+                db_cols.append('Wt.')
             
             db_info = data.DATABASE_DF[db_cols]
             merged_df = pd.merge(results_df, db_info, on='ID_Univoco', how='left', suffixes=('', '_db'))
@@ -520,18 +522,78 @@ def run_similarity_calculation(search_data, identikit_n_clicks, pos_value, clust
                 if target_comp:
                     merged_df = merged_df[merged_df['Comp'].astype(str).str.contains(target_comp, case=False, na=False)]
             
+            # Variabili per tracciare i warning
+            warning_messages = []
+            
+            # Filtra per Altezza se richiesto
+            if filter_height_search and 'filter' in filter_height_search:
+                target_height_raw = player_data.get('Ht.', 'ND')
+                if target_height_raw != 'ND':
+                    try:
+                        target_height = float(target_height_raw)
+                        # Range ±5cm (assumendo altezza in metri, quindi ±0.05)
+                        height_min = target_height - 0.05
+                        height_max = target_height + 0.05
+                        
+                        # Converti colonna Ht. a numerico
+                        merged_df['Ht_numeric'] = pd.to_numeric(merged_df['Ht.'], errors='coerce')
+                        merged_df = merged_df[
+                            (merged_df['Ht_numeric'].notna()) &
+                            (merged_df['Ht_numeric'] >= height_min) &
+                            (merged_df['Ht_numeric'] <= height_max)
+                        ]
+                        merged_df = merged_df.drop(columns=['Ht_numeric'])
+                    except (ValueError, TypeError):
+                        print(f"Warning: Impossibile convertire altezza '{target_height_raw}' per il filtro.")
+                        warning_messages.append("Altezza non valida")
+                else:
+                    # Se il giocatore target non ha altezza, aggiungi warning ma continua
+                    warning_messages.append("Il giocatore non ha dati sull'altezza")
+                    print("Warning: Filtro altezza ignorato - dati mancanti per il giocatore target")
+            
+            # Filtra per Peso se richiesto
+            if filter_weight_search and 'filter' in filter_weight_search:
+                target_weight_raw = player_data.get('Wt.', 'ND')
+                if target_weight_raw != 'ND':
+                    try:
+                        target_weight = float(target_weight_raw)
+                        # Range ±5kg
+                        weight_min = target_weight - 5
+                        weight_max = target_weight + 5
+                        
+                        # Converti colonna Wt. a numerico
+                        merged_df['Wt_numeric'] = pd.to_numeric(merged_df['Wt.'], errors='coerce')
+                        merged_df = merged_df[
+                            (merged_df['Wt_numeric'].notna()) &
+                            (merged_df['Wt_numeric'] >= weight_min) &
+                            (merged_df['Wt_numeric'] <= weight_max)
+                        ]
+                        merged_df = merged_df.drop(columns=['Wt_numeric'])
+                    except (ValueError, TypeError):
+                        print(f"Warning: Impossibile convertire peso '{target_weight_raw}' per il filtro.")
+                        warning_messages.append("Peso non valido")
+                else:
+                    # Se il giocatore target non ha peso, aggiungi warning ma continua
+                    warning_messages.append("Il giocatore non ha dati sul peso")
+                    print("Warning: Filtro peso ignorato - dati mancanti per il giocatore target")
+            
             # Limita ai k risultati richiesti dopo il filtraggio
             merged_df = merged_df.head(k_base)
 
             if merged_df.empty:
                 return {'error': "Nessun giocatore trovato dopo l'applicazione dei filtri. Prova a disabilitare i filtri geografici."}
 
-            return {
+            result = {
                 'target_player': player_data,
                 'target_style': source_player_style,
-                'similar_players': merged_df.to_dict('records'
-                )
+                'similar_players': merged_df.to_dict('records')
             }
+            
+            # Aggiungi warnings se presenti
+            if warning_messages:
+                result['warnings'] = warning_messages
+            
+            return result
 
         # --- Caso: Identikit submission ---
         if triggered == 'identikit-find-button':
@@ -913,6 +975,12 @@ def render_modal_content(store_data, btn_table_clicks, btn_3d_clicks):
         
         if 'error' in store_data:
             return dbc.Alert(store_data['error'], color="danger"), False, False
+        
+        # Mostra warnings se presenti (ma continua con i risultati)
+        warning_alert = None
+        if 'warnings' in store_data and store_data['warnings']:
+            warning_text = "Attenzione: " + ", ".join(store_data['warnings']) + ". Filtri ignorati."
+            warning_alert = dbc.Alert(warning_text, color="warning", dismissable=True, className="mb-3")
 
         # Determina quale vista mostrare
         ctx = dash.callback_context
@@ -1087,7 +1155,9 @@ def render_modal_content(store_data, btn_table_clicks, btn_3d_clicks):
             )
             content = html.Div(table, style={'maxHeight': '400px', 'overflowY': 'auto'})
 
-        return [info_card, content], not show_3d, show_3d
+        # Combina warning_alert (se presente) con il contenuto
+        final_content = [warning_alert, info_card, content] if warning_alert else [info_card, content]
+        return final_content, not show_3d, show_3d
     
     except PreventUpdate:
         raise
@@ -1245,7 +1315,7 @@ def update_database_table(name_value, pos_value, role_value, age_min_value, age_
         for offset, (_, row) in enumerate(page_df.iterrows()):
             display_index = start_index + offset + 1
             rows_children.append(
-                html.Div(className='player-row', children=[
+                html.Div(className='player-row', style={'animationDelay': f'{offset * 0.05}s'}, children=[
                     html.Span(str(display_index), className='row-index'),
                     html.Span([
                         html.I(className='fas fa-futbol row-icon'),
