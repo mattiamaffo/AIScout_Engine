@@ -4,6 +4,9 @@
 
 Originariamente sviluppata come applicazione desktop, è stata migrata in una Web App moderna basata su **Dash** e pronta per il deploy in cloud (es. Render.com).
 
+
+<img width="2816" height="1536" alt="AIScout_informative_italian" src="https://github.com/user-attachments/assets/4cc233ab-8842-4e6a-bc07-00eca0f52653" />
+
 ---
 
 ## 🎯 Obiettivi del Progetto
@@ -129,3 +132,4 @@ L'applicazione è configurata per essere deployata facilmente su Render.com come
 
 I dati utilizzati coprono la stagione **2024-2025** (e precedenti) e includono metriche avanzate come _Expected Goals (xG)_, _Progressive Carries_, _Defensive Actions_, ecc.
 I campionati coperti includono: Top 5 Europei, Championship, Eredivisie, Primeira Liga, Jupiler Pro League, Brasileirão, Primera División Argentina.
+
