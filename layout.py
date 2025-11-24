@@ -2,6 +2,7 @@ from dash import dcc, html # type: ignore
 import config
 from data import all_roles_options, with_blank, SORT_BY_OPTIONS, PLAYER_SEARCH_OPTIONS # Importa le opzioni
 import dash_bootstrap_components as dbc # type: ignore
+from version import get_full_version_string
 
 
 # --- Layout Scheda 1: Search Player ---
@@ -472,7 +473,14 @@ def create_main_layout():
             # --- NUOVO: Interval per startup (Fix Error) ---
             dcc.Interval(id='startup-interval', interval=1000, n_intervals=0, max_intervals=1),
 
-            html.Img(id='app-logo', src='/assets/FullLogo_Transparent.png'),
+            html.Img(id='app-logo', src='/assets/new_logo.png'),
+            
+            # --- Numero di Versione (Bottom Left) ---
+            html.Div(
+                className='app-version',
+                children=get_full_version_string(),
+                title='Versione AIScout'
+            ),
             
             html.Div(id='app-navbar', className='segmented-control', children=[
                 html.Div(className='nav-slider'),
