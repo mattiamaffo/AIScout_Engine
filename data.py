@@ -201,6 +201,30 @@ def _load_style_lookup(pca_dataframes=None) -> dict:
             lookup[str(id_univoco)] = style_map.get(cluster_id, f"{role} Cluster {cluster_id}")
     return lookup
 
+def optimize_dataframe(df):
+    """
+    Ottimizza l'uso della memoria convertendo i tipi di dati.
+    - float64 -> float32
+    - int64 -> int32
+    - object (stringhe ripetitive) -> category
+    """
+    # 1. Downcast numeri
+    for col in df.select_dtypes(include=['float64']).columns:
+        df[col] = df[col].astype('float32')
+    
+    for col in df.select_dtypes(include=['int64']).columns:
+        df[col] = df[col].astype('int32')
+        
+    # 2. Converti stringhe in categorie (se ne vale la pena)
+    for col in df.select_dtypes(include=['object']).columns:
+        num_unique_values = len(df[col].unique())
+        num_total_values = len(df)
+        # Se ci sono pochi valori unici (es. Team, Nation, Comp), converti in category
+        if num_total_values > 0 and (num_unique_values / num_total_values) < 0.5:
+            df[col] = df[col].astype('category')
+    
+    return df
+
 def _prepare_database_dataframe(pca_dataframes=None) -> pd.DataFrame:
     """
     Carica e pulisce il dataset principale da utilizzare nella tabella DB.
@@ -265,6 +289,11 @@ def _prepare_database_dataframe(pca_dataframes=None) -> pd.DataFrame:
           f"Serie B x{config.LEAGUE_COEFFICIENTS.get('Serie B', config.DEFAULT_LEAGUE_COEFFICIENT)}")
     
     # --- FINE LEAGUE EXCHANGE RATE ---
+
+    # --- OTTIMIZZAZIONE MEMORIA ---
+    print("--- Ottimizzazione Memoria DataFrame ---")
+    df = optimize_dataframe(df)
+    print("--- Ottimizzazione Completata ---")
 
     return df.reset_index(drop=True)
 

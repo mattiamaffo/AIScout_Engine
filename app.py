@@ -23,23 +23,37 @@ if getattr(sys, 'frozen', False):
 else:
     FULL_DATASET_PATH = BASE_DIR.parent / 'data' / 'dataset_master_unified_2526.parquet'
 
+external_stylesheets = [
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css',
+    dbc.themes.BOOTSTRAP 
+]
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
+app.title = "AIScout Engine"
+server = app.server # Espone il server Flask per Gunicorn
+
 # --- Importazione e Caricamento Dati Sincrono ---
 import data
 import config
 
-print("--- Avvio Caricamento Dati Sincrono ---")
-data.load_data()
+if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.server.debug:
+    print("--- Avvio Caricamento Dati Sincrono (Worker Process) ---")
+    data.load_data()
 
-# --- Inizializzazione Engine Sincrona ---
-print("--- Inizializzazione SimilarityEngine ---")
-try:
-    ARTIFACTS_DIR = BASE_DIR / 'artifacts'
-    engine = SimilarityEngine(artifacts_dir=str(ARTIFACTS_DIR))
-    engine.load_artifacts() # Sincrono
-    print("--- Motore di Similarità Caricato ---")
-    FEATURE_STATS = engine.feature_stats if hasattr(engine, 'feature_stats') else {}
-except Exception as e:
-    print(f"--- ERRORE CRITICO: Impossibile caricare il SimEngine. {e} ---")
+    # --- Inizializzazione Engine Sincrona ---
+    print("--- Inizializzazione SimilarityEngine ---")
+    try:
+        ARTIFACTS_DIR = BASE_DIR / 'artifacts'
+        engine = SimilarityEngine(artifacts_dir=str(ARTIFACTS_DIR))
+        engine.load_artifacts()
+        print("--- Motore di Similarità Caricato ---")
+        FEATURE_STATS = engine.feature_stats if hasattr(engine, 'feature_stats') else {}
+    except Exception as e:
+        print(f"--- ERRORE CRITICO: Impossibile caricare il SimEngine. {e} ---")
+        engine = None
+        FEATURE_STATS = {}
+else:
+    print("--- Skip Caricamento Dati (Watcher Process) ---")
     engine = None
     FEATURE_STATS = {}
 
@@ -56,17 +70,6 @@ from data import (
     with_blank, 
     ROWS_PER_PAGE
 )
-
-# 1. --- Inizializzazione App ---
-external_stylesheets = [
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css',
-    dbc.themes.BOOTSTRAP 
-]
-
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
-app.title = "AIScout Engine"
-
-server = app.server
 
 # ====== FUNZIONI DI VALIDAZIONE E GESTIONE ERRORI ======
 
@@ -1685,4 +1688,4 @@ def download_report_pdf(n_clicks, chat_history):
 
 # 4. --- Esecuzione Server ---
 if __name__ == '__main__':
-       app.run(debug=True, port=8050)
+       app.run(debug=True, port=8050, use_reloader=False)
