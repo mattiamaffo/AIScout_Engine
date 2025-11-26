@@ -1,9 +1,25 @@
+# --- Web App Framework ---
 dash
 dash-bootstrap-components
-pandas
-scikit-learn
-pyarrow
 gunicorn
+
+# --- Data Science & ML Core ---
+pandas
+numpy
+scikit-learn
 joblib
 plotly
-numpy
+openpyxl
+
+# --- AI Cloud Stack (Il "Cervello") ---
+groq
+qdrant-client
+dspy-ai
+fastembed
+tavily-python
+python-dotenv
+
+# --- Utilities per Export e Formattazione ---
+markdown
+xhtml2pdf
+tabulate
