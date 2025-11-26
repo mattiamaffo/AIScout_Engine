@@ -7,6 +7,20 @@ from pathlib import Path
 import unicodedata
 import re
 
+# --- Funzione per gestire i percorsi sia in Dev che in .Exe ---
+def get_base_path():
+    """
+    Restituisce il percorso base corretto.
+    Se siamo in un eseguibile PyInstaller, usa sys._MEIPASS.
+    Se siamo in sviluppo locale, usa la cartella corrente del file.
+    """
+    if getattr(sys, 'frozen', False):
+        # Se siamo compilati in un .exe
+        return Path(sys._MEIPASS)
+    else:
+        # Se stiamo eseguendo lo script python normalmente
+        return Path(__file__).resolve().parent
+
 # --- Configurazione Pandas ---
 pd.set_option('display.max_rows', 10)
 pd.set_option('display.max_columns', None)
@@ -89,6 +103,45 @@ class PlayerDataPreprocessor:
             print(f"ERRORE: File '{self.MASTER_FILE_PATH}' non trovato.")
             print("Esegui prima 'crea_dataset_master.py' per generarlo.")
             raise
+
+        # --- LEAGUE EXCHANGE RATE ADJUSTMENT (PRE-TRAINING) ---
+        print("\n--- Applicazione League Exchange Rate (Pre-Training) ---")
+        
+        import config
+        import numpy as np # type: ignore
+        
+        # Verifica presenza colonna Comp
+        if 'Comp' not in df_master.columns:
+            print("   ⚠️ ATTENZIONE: Colonna 'Comp' non trovata. Ponderazione saltata.")
+        else:
+            # Mappa coefficienti
+            coefficients = df_master['Comp'].map(config.LEAGUE_COEFFICIENTS).fillna(config.DEFAULT_LEAGUE_COEFFICIENT)
+            
+            # Identifica colonne numeriche da ponderare
+            numeric_cols = df_master.select_dtypes(include=[np.number]).columns.tolist()
+            cols_to_adjust = [col for col in numeric_cols if col not in config.COLS_TO_EXCLUDE_FROM_ADJUSTMENT]
+            
+            print(f"   Colonne numeriche: {len(numeric_cols)} | Da ponderare: {len(cols_to_adjust)}")
+            
+            # Applica ponderazione
+            for col in cols_to_adjust:
+                df_master[col] = df_master[col].mul(coefficients)
+            
+            print(f"   ✓ Ponderazione PRE-TRAINING completata")
+            
+            # Verifica: Mostra media di una statistica chiave per diverse leghe
+            if 'Gls' in df_master.columns:
+                sample_leagues = ['Premier League', 'Serie A', 'Serie B']
+                for league in sample_leagues:
+                    if league in df_master['Comp'].values:
+                        avg_gls = df_master[df_master['Comp'] == league]['Gls'].mean()
+                        coeff = config.LEAGUE_COEFFICIENTS.get(league, config.DEFAULT_LEAGUE_COEFFICIENT)
+                        print(f"      {league} (x{coeff}): Media Gls = {avg_gls:.2f}")
+        
+        # --- FINE LEAGUE EXCHANGE RATE ---
+        
+        # Salva df_master come attributo per verifica post-training
+        self.df_master = df_master.copy()
         
         # 2. Creazione ID Univoco (Robusto)
         try:

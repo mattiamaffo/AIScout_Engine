@@ -6,6 +6,20 @@ from pathlib import Path
 from typing import Dict, List, Any, Tuple
 from config import CLUSTER_NAMES_MAP
 
+# --- Funzione per gestire i percorsi sia in Dev che in .Exe ---
+def get_base_path():
+    """
+    Restituisce il percorso base corretto.
+    Se siamo in un eseguibile PyInstaller, usa sys._MEIPASS.
+    Se siamo in sviluppo locale, usa la cartella corrente del file.
+    """
+    if getattr(sys, 'frozen', False):
+        # Se siamo compilati in un .exe
+        return Path(sys._MEIPASS)
+    else:
+        # Se stiamo eseguendo lo script python normalmente
+        return Path(__file__).resolve().parent
+
 class SimilarityEngine:
     """
     Carica i modelli addestrati (artefatti) ed esegue le query di similarità.
@@ -17,7 +31,7 @@ class SimilarityEngine:
         Inizializza il motore. Carica solo le statistiche leggere.
         Gli artefatti pesanti vengono caricati in modo pigro (lazy loading).
         """
-        print("--- Inizializzazione Motore di Similarità (Lazy Loading) ---")
+        # print("--- Inizializzazione Motore di Similarità (Lazy Loading) ---")
         self.artifacts_dir = Path(artifacts_dir) if not isinstance(artifacts_dir, Path) else artifacts_dir
         
         # Flag per indicare se gli artefatti sono stati caricati
@@ -39,11 +53,11 @@ class SimilarityEngine:
             if stats_path.exists():
                 with open(stats_path, 'r') as f:
                     self.feature_stats = json.load(f)
-                print(f"   -> Statistiche feature caricate.")
+                # print(f"   -> Statistiche feature caricate.")
             else:
                 self.feature_stats = {}
         except Exception as e:
-            print(f"   Statistiche feature non disponibili: {e}")
+            # print(f"   Statistiche feature non disponibili: {e}")
             self.feature_stats = {}
 
     def load_artifacts(self, progress_callback=None):
@@ -56,12 +70,12 @@ class SimilarityEngine:
         """
         Carica gli artefatti pesanti se non sono già stati caricati.
         """
-        print(f"DEBUG: _ensure_artifacts_loaded chiamato. Loaded={self.artifacts_loaded}")
+        # print(f"DEBUG: _ensure_artifacts_loaded chiamato. Loaded={self.artifacts_loaded}")
         if self.artifacts_loaded:
-            print("DEBUG: Artefatti già caricati. Esco.")
+            # print("DEBUG: Artefatti già caricati. Esco.")
             return
 
-        print("--- Caricamento Artefatti Pesanti in corso... ---")
+        # print("--- Caricamento Artefatti Pesanti in corso... ---")
         if progress_callback:
             progress_callback(75, "Caricamento Scalers...")
         
@@ -90,16 +104,16 @@ class SimilarityEngine:
                 self.feature_columns = {}
                 
             self.artifacts_loaded = True
-            print("--- Artefatti caricati con successo. ---")
+            # print("--- Artefatti caricati con successo. ---")
             
             if progress_callback:
                 progress_callback(100, "Avvio Applicazione...")
             
         except FileNotFoundError as e:
-            print(f"ERRORE CRITICO: File artefatto mancante in '{self.artifacts_dir}'. {e}")
+            # print(f"ERRORE CRITICO: File artefatto mancante in '{self.artifacts_dir}'. {e}")
             raise
         except Exception as e:
-            print(f"ERRORE CRITICO durante il caricamento artefatti: {e}")
+            # print(f"ERRORE CRITICO durante il caricamento artefatti: {e}")
             raise
 
     def _get_style_name(self, ruolo: str, cluster_id: int) -> str:
@@ -126,29 +140,27 @@ class SimilarityEngine:
     def _find_player(self, search_term: str) -> Tuple[str, Any]:
         """
         Metodo privato per trovare un giocatore nel database.
-        Restituisce lo stato, il ruolo, l'ID (Rk/Indice), il nome, il Cluster ID e il Nome Stile.
+        Gestisce i doppi ruoli (es. FW,MF) unificando i risultati.
         """
-        self._ensure_artifacts_loaded() # <-- Lazy Load
+        self._ensure_artifacts_loaded()
         
         matches = []
+        search_term_clean = search_term.strip().lower()
+
         for ruolo, df in self.pca_dataframes.items():
             if 'Player' not in df.columns or 'Cluster' not in df.columns:
-                continue # Salta se il dataframe non è valido
+                continue
                 
-            # Cerca il termine nel nome del giocatore (ignorando spazi bianchi e maiuscole)
-            # es. " tammy abraham " -> "tammy abraham"
-            search_term_clean = search_term.strip().lower()
             player_names_clean = df['Player'].str.strip().str.lower()
-            
             found_df = df[player_names_clean.str.contains(search_term_clean, na=False)]
             
             if not found_df.empty:
-                for idx, row in found_df.iterrows(): # idx è l'ID_Univoco (l'indice)
+                for idx, row in found_df.iterrows():
                     cluster_id = int(row['Cluster'])
                     style_name = self._get_style_name(ruolo, cluster_id)
                     
                     matches.append({
-                        'ID_Univoco': idx, # <-- Indice Univoco (es. Player_Comp)
+                        'ID_Univoco': idx, 
                         'Player': row['Player'],
                         'Team': row['Team'],
                         'Age': row['Age'],
@@ -160,17 +172,26 @@ class SimilarityEngine:
         if len(matches) == 0:
             return ("ERROR", f"Giocatore '{search_term}' non trovato.")
         
-        if len(matches) == 1:
+        # --- FIX: DEDUPLICAZIONE ---
+        # Se abbiamo trovato match, controlliamo se sono la stessa persona (stesso ID)
+        print(f"Matches found: {matches}")
+        unique_ids = set(m['ID_Univoco'] for m in matches)
+        
+        if len(unique_ids) == 1:
+            # È lo stesso giocatore trovato in più ruoli (es. Zirkzee in FW e MF).
+            # Prendiamo il primo match della lista (spesso corrisponde al ruolo primario se l'ordine di iterazione è FW, MF...)
+            # Oppure potremmo cercare di capire quale ruolo è "migliore", ma il primo va bene.
             match = matches[0]
-            # Restituisce il payload completo
             return ("FOUND", (match['Role'], match['ID_Univoco'], match['Player'], match['ClusterID'], match['StyleName']))
-            
+
+        # Se ci sono ID diversi, allora sono omonimi reali -> AMBIGUO
         if len(matches) > 1:
-            # Mostra anche lo stile nelle scelte ambigue
             choices_df = pd.DataFrame(matches).set_index('ID_Univoco')
             return ("AMBIGUOUS", choices_df[['Player', 'Team', 'Age', 'Role', 'StyleName']])
             
-        return ("ERROR", "Errore di logica imprevisto.")
+        # Fallback per singolo match (già coperto sopra, ma per sicurezza)
+        match = matches[0]
+        return ("FOUND", (match['Role'], match['ID_Univoco'], match['Player'], match['ClusterID'], match['StyleName']))
     
     def _find_player_data_by_id(self, player_id_univoco: str) -> Tuple[str, Any, int, str]:
         """Helper per trovare i dati di un giocatore (ruolo, riga, cluster, stile) tramite ID."""
@@ -201,7 +222,7 @@ class SimilarityEngine:
             # _find_player_data_by_id chiama già _ensure_artifacts_loaded
             ruolo, player_row, cluster_id, style_name = self._find_player_data_by_id(player_id_univoco)
             
-            print(f"\n--- Ricerca per ID in corso: {player_id_univoco} ({player_row['Player']}) ---")
+            # print(f"\n--- Ricerca per ID in corso: {player_id_univoco} ({player_row['Player']}) ---")
             
             # --- MODIFICA CHIAVE: Estrai le coordinate del TARGET ---
             target_coords = {
@@ -232,6 +253,8 @@ class SimilarityEngine:
             results_df = df_pca_full.loc[player_ids]
             results_df['Similarita (Distanza)'] = result_distances_with_self
             results_df = results_df.sort_values(by='Similarita (Distanza)')
+
+            results_df = results_df.drop_duplicates(subset=['Player', 'Team'], keep='first')
             
             # 6. Escludi il giocatore stesso
             if not results_df.empty and results_df.index[0] == player_id_univoco:
@@ -253,10 +276,10 @@ class SimilarityEngine:
             return (final_df, style_name, target_coords)
 
         except KeyError as e:
-            print(f"ERRORE: Dati non trovati per ID '{player_id_univoco}'. Dettagli: {e}")
+            # print(f"ERRORE: Dati non trovati per ID '{player_id_univoco}'. Dettagli: {e}")
             return (pd.DataFrame(), None, {})
         except Exception as e:
-            print(f"ERRORE imprevisto durante la ricerca k-NN by ID: {e}")
+            # print(f"ERRORE imprevisto durante la ricerca k-NN by ID: {e}")
             return (pd.DataFrame(), None, {})
 
 
@@ -274,13 +297,13 @@ class SimilarityEngine:
         try:
             ruolo = role
             if ruolo not in self.pcas or ruolo not in self.scalers:
-                print(f"ERRORE: Ruolo '{ruolo}' non trovato negli artefatti.")
+                # print(f"ERRORE: Ruolo '{ruolo}' non trovato negli artefatti.")
                 return (pd.DataFrame(), None, {})
 
             # Recupera le colonne di feature nell'ordine usato in training
             feature_cols = self.feature_columns.get(ruolo)
             if not feature_cols:
-                print(f"ERRORE: Feature columns non disponibili per ruolo {ruolo}.")
+                # print(f"ERRORE: Feature columns non disponibili per ruolo {ruolo}.")
                 return (pd.DataFrame(), None, {})
 
             # Calcola le medie delle features per questo ruolo dal dataset originale
@@ -310,7 +333,7 @@ class SimilarityEngine:
                         val = float(kv)
                         if val > 0:  # Include solo valori positivi
                             input_row.at[0, kf] = val
-                            print(f"   Feature '{kf}' impostata a {val}")
+                            # print(f"   Feature '{kf}' impostata a {val}")
                     except Exception:
                         pass  # Ignora valori non numerici
 
@@ -339,16 +362,16 @@ class SimilarityEngine:
             if requested_cluster_id is not None:
                 # Usa il cluster specificato dall'utente
                 cluster_id = int(requested_cluster_id)
-                print(f"--- Cluster SPECIFICATO dall'utente: {cluster_id} ---")
+                # print(f"--- Cluster SPECIFICATO dall'utente: {cluster_id} ---")
             else:
                 # Individua cluster usando KMeans
                 kmeans = self.kmeans_models.get(ruolo)
                 if kmeans is None:
-                    print(f"ERRORE: KMeans non trovato per ruolo {ruolo}.")
+                    # print(f"ERRORE: KMeans non trovato per ruolo {ruolo}.")
                     return (pd.DataFrame(), None, target_coords)
                 # KMeans si aspetta lo stesso spazio PCA
                 cluster_id = int(kmeans.predict(X_pca)[0])
-                print(f"--- Cluster PREDETTO da KMeans: {cluster_id} ---")
+                # print(f"--- Cluster PREDETTO da KMeans: {cluster_id} ---")
             
             style_name = self._get_style_name(ruolo, cluster_id)
 
@@ -358,12 +381,12 @@ class SimilarityEngine:
             pc_columns = [col for col in df_cluster.columns if 'PC' in col]
 
             if df_cluster.empty:
-                print(f"ERRORE: Nessun giocatore nel cluster {cluster_id} per ruolo {ruolo}.")
+                # print(f"ERRORE: Nessun giocatore nel cluster {cluster_id} per ruolo {ruolo}.")
                 return (pd.DataFrame(), style_name, target_coords)
 
             knn_model = self.knn_models.get(ruolo, {}).get(cluster_id)
             if knn_model is None:
-                print(f"ERRORE: k-NN non trovato per ruolo {ruolo} cluster {cluster_id}.")
+                # print(f"ERRORE: k-NN non trovato per ruolo {ruolo} cluster {cluster_id}.")
                 return (pd.DataFrame(), style_name, target_coords)
 
             # Prepara il vettore target nello spazio PCA (attenzione alle dimensioni)
@@ -382,6 +405,8 @@ class SimilarityEngine:
             results_df['Similarita (Distanza)'] = result_distances_with_self
             results_df = results_df.sort_values(by='Similarita (Distanza)')
 
+            results_df = results_df.drop_duplicates(subset=['Player', 'Team'], keep='first')
+
             # Escludi eventuale entry identica (non presente perché ghost non è nel DF)
             top_k_df = results_df.head(k).copy()
             top_k_df['Stile di Gioco'] = top_k_df['Cluster'].apply(lambda x: self._get_style_name(ruolo, int(x)))
@@ -394,7 +419,7 @@ class SimilarityEngine:
             return (final_df, style_name, target_coords)
 
         except Exception as e:
-            print(f"ERRORE imprevisto in find_similar_by_identikit: {e}")
+            # print(f"ERRORE imprevisto in find_similar_by_identikit: {e}")
             return (pd.DataFrame(), None, {})
 
     def find_similar_by_identikit_all_clusters(self, role: str, feature_dict: Dict[str, Any], k: int = 10) -> Tuple[pd.DataFrame, str, Dict]:
@@ -408,13 +433,13 @@ class SimilarityEngine:
         try:
             ruolo = role
             if ruolo not in self.pcas or ruolo not in self.scalers:
-                print(f"ERRORE: Ruolo '{ruolo}' non trovato negli artefatti.")
+                # print(f"ERRORE: Ruolo '{ruolo}' non trovato negli artefatti.")
                 return (pd.DataFrame(), None, {})
 
             # Recupera le colonne di feature nell'ordine usato in training
             feature_cols = self.feature_columns.get(ruolo)
             if not feature_cols:
-                print(f"ERRORE: Feature columns non disponibili per ruolo {ruolo}.")
+                # print(f"ERRORE: Feature columns non disponibili per ruolo {ruolo}.")
                 return (pd.DataFrame(), None, {})
 
             # Calcola le medie delle features per questo ruolo dal dataset originale
@@ -444,7 +469,7 @@ class SimilarityEngine:
                         val = float(kv)
                         if val > 0:  # Include solo valori positivi
                             input_row.at[0, kf] = val
-                            print(f"   Feature '{kf}' impostata a {val}")
+                            # print(f"   Feature '{kf}' impostata a {val}")
                     except Exception:
                         pass  # Ignora valori non numerici
 
@@ -498,6 +523,8 @@ class SimilarityEngine:
                 results_df = df_pca_full.loc[player_ids].copy()
                 results_df['Similarita (Distanza)'] = result_distances
                 results_df['Cluster'] = cluster_id  # Mantieni cluster
+
+                results_df = results_df.drop_duplicates(subset=['Player', 'Team'], keep='first')
                 
                 all_results.append(results_df)
             
@@ -522,7 +549,7 @@ class SimilarityEngine:
             return (final_df, f"{ruolo} (Tutti i Cluster)", target_coords)
             
         except Exception as e:
-            print(f"ERRORE imprevisto in find_similar_by_identikit_all_clusters: {e}")
+            # print(f"ERRORE imprevisto in find_similar_by_identikit_all_clusters: {e}")
             return (pd.DataFrame(), None, {})
 
     def find_similar_by_identikit_all_roles(self, feature_dict: Dict[str, Any], k: int = 10) -> Tuple[pd.DataFrame, str, Dict]:
@@ -611,6 +638,8 @@ class SimilarityEngine:
                 results_df['Similarita (Distanza)'] = result_distances
                 results_df['Role'] = ruolo  # Aggiungi colonna ruolo
                 results_df['Cluster'] = cluster_id  # Mantieni cluster
+
+                results_df = results_df.drop_duplicates(subset=['Player', 'Team'], keep='first')
                 
                 all_results.append(results_df)
             
@@ -644,7 +673,7 @@ class SimilarityEngine:
             return (final_df, "Tutti i Ruoli", target_coords)
             
         except Exception as e:
-            print(f"ERRORE imprevisto in find_similar_by_identikit_all_roles: {e}")
+            # print(f"ERRORE imprevisto in find_similar_by_identikit_all_roles: {e}")
             return (pd.DataFrame(), None, {})
 
 
@@ -663,23 +692,23 @@ class SimilarityEngine:
         status, payload = self._find_player(search_term)
         
         if status == "ERROR":
-            print(payload)
+            # print(payload)
             return (pd.DataFrame(), None) # <-- MODIFICATO
         
         if status == "AMBIGUOUS":
-            print(f"--- Ricerca Ambigua ---")
-            print(f"Il termine '{search_term}' corrisponde a {len(payload)} giocatori:")
-            print(payload)
-            print("\nEsegui una nuova ricerca con un nome più specifico.")
+            # print(f"--- Ricerca Ambigua ---")
+            # print(f"Il termine '{search_term}' corrisponde a {len(payload)} giocatori:")
+            # print(payload)
+            # print("\nEsegui una nuova ricerca con un nome più specifico.")
             return (payload, None) # <-- MODIFICATO
             
         # Caso 1 (Trovato)
         if status == "FOUND":
             player_role, player_id, player_name, player_cluster, player_style = payload
             
-            print(f"\n--- Ricerca in corso per: {player_name} (Trovato) ---")
-            print(f"   -> Ruolo: {player_role}")
-            print(f"   -> Stile di Gioco: {player_style} (Cluster {player_cluster})")
+            # print(f"\n--- Ricerca in corso per: {player_name} (Trovato) ---")
+            # print(f"   -> Ruolo: {player_role}")
+            # print(f"   -> Stile di Gioco: {player_style} (Cluster {player_cluster})")
             
             try:
                 # ... (Logica k-NN invariata) ...
@@ -704,6 +733,8 @@ class SimilarityEngine:
                 results_df = df_pca_full.loc[player_ids]
                 results_df['Similarita (Distanza)'] = result_distances_with_self
                 results_df = results_df.sort_values(by='Similarita (Distanza)')
+
+                results_df = results_df.drop_duplicates(subset=['Player', 'Team'], keep='first')
                 
                 # 6. Escludi il giocatore stesso e prendi i top k
                 if not results_df.empty and results_df.index[0] == player_id:
@@ -714,7 +745,7 @@ class SimilarityEngine:
                 )
                 
                 # ... (Creazione final_df invariata) ...
-                output_cols = ['Player', 'Ht.', 'Wt.', 'Comp', 'Team', 'Similarita (Distanza)', 'Valore_Mercato']
+                output_cols = ['Player', 'Age', 'Ht.', 'Wt.', 'Comp', 'Team', 'Similarita (Distanza)']
                 final_cols = [col for col in output_cols if col in top_k_df.columns]
                 final_df = top_k_df[final_cols].reset_index()
                 final_df = final_df.rename(columns={'index': 'ID_Univoco'})
@@ -724,17 +755,17 @@ class SimilarityEngine:
                 return (final_df, player_style)
 
             except KeyError:
-                print(f"ERRORE: Modello k-NN o dati PCA non trovati per il ruolo '{player_role}' e cluster '{player_cluster}'.")
+                # print(f"ERRORE: Modello k-NN o dati PCA non trovati per il ruolo '{player_role}' e cluster '{player_cluster}'.")
                 return (pd.DataFrame(), None) # <-- MODIFICATO
             except Exception as e:
-                print(f"ERRORE imprevisto durante la ricerca k-NN: {e}")
+                # print(f"ERRORE imprevisto durante la ricerca k-NN: {e}")
                 return (pd.DataFrame(), None) # <-- MODIFICATO
 
             except KeyError:
-                print(f"ERRORE: Modello k-NN o dati PCA non trovati per il ruolo '{player_role}' e cluster '{player_cluster}'.")
+                # print(f"ERRORE: Modello k-NN o dati PCA non trovati per il ruolo '{player_role}' e cluster '{player_cluster}'.")
                 return pd.DataFrame()
             except Exception as e:
-                print(f"ERRORE imprevisto durante la ricerca k-NN: {e}")
+                # print(f"ERRORE imprevisto durante la ricerca k-NN: {e}")
                 return pd.DataFrame()
 
 # --- BLOCCO DI TEST PER IL MOTORE ---
@@ -753,7 +784,7 @@ if __name__ == "__main__":
         
         # --- TEST 1: Ricerca Specifica (Sostituisci con un nome reale) ---
         print("\n" + "="*30 + " TEST 1 (Attaccante) " + "="*30)
-        target_player_1 = "Mohamed Salah" # <<< MODIFICA QUI
+        target_player_1 = "Mancini" # <<< MODIFICA QUI
         
         similar_players_1, role_1 = engine.find_similar_players(target_player_1, k=10)
         

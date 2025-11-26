@@ -1,25 +1,43 @@
-# --- Web App Framework ---
-dash
-dash-bootstrap-components
-gunicorn
+# --- Core Dependencies ---
+pandas==2.3.3
+numpy==2.3.4
+joblib==1.5.2
+scikit-learn==1.7.2
+scipy==1.16.3
 
-# --- Data Science & ML Core ---
-pandas
-numpy
-scikit-learn
-joblib
-plotly
-openpyxl
+# --- Web Framework ---
+dash==3.2.0
+dash-bootstrap-components==2.0.4
+Flask==3.1.2
+gunicorn==23.0.0
 
-# --- AI Cloud Stack (Il "Cervello") ---
-groq
-qdrant-client
-dspy-ai
-fastembed
-tavily-python
-python-dotenv
+# --- AI/ML Cloud ---
+dspy-ai==2.5.3
+groq==0.11.0
+fastembed==0.3.6
+tavily-python==0.5.0
+qdrant-client==1.12.1
 
-# --- Utilities per Export e Formattazione ---
-markdown
-xhtml2pdf
-tabulate
+# --- Utilities ---
+python-dotenv==1.0.1
+requests==2.32.5
+python-dateutil==2.9.0.post0
+pytz==2025.2
+pyarrow==21.0.0
+
+# --- Visualization ---
+plotly==6.4.0
+matplotlib==3.10.7
+altair==5.5.0
+
+# --- ML Extras ---
+umap-learn==0.5.9.post2
+numba==0.62.1
+pynndescent==0.5.13
+
+# --- System ---
+certifi==2025.10.5
+urllib3==2.5.0
+typing_extensions==4.15.0
+packaging==25.0
+tqdm==4.67.1

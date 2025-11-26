@@ -11,6 +11,20 @@ import sys
 from pathlib import Path
 from sklearn.cluster import KMeans # type: ignore
 
+# --- Funzione per gestire i percorsi sia in Dev che in .Exe ---
+def get_base_path():
+    """
+    Restituisce il percorso base corretto.
+    Se siamo in un eseguibile PyInstaller, usa sys._MEIPASS.
+    Se siamo in sviluppo locale, usa la cartella corrente del file.
+    """
+    if getattr(sys, 'frozen', False):
+        # Se siamo compilati in un .exe
+        return Path(sys._MEIPASS)
+    else:
+        # Se stiamo eseguendo lo script python normalmente
+        return Path(__file__).resolve().parent
+
 # --- Importazioni dal Progetto ---
 import config
 from PlayerDataPreprocessor import PlayerDataPreprocessor
@@ -433,3 +447,35 @@ if __name__ == "__main__":
     
     print("\n--- Addestramento e salvataggio (con cluster) completati. ---")
     print("--- Ora esegui 'cluster_analyzer.py' per profilare i nuovi cluster. ---")
+
+    # --- VERIFICA LEAGUE EXCHANGE RATE ---
+    print("\n--- Verifica League Exchange Rate (Post-Training) ---")
+    import config
+    
+    # Carica il dataframe elaborato
+    df_verificato = processor.df_master
+    
+    if 'Comp' in df_verificato.columns and 'Gls' in df_verificato.columns:
+        print("   Confronto statistiche tra leghe (dopo ponderazione):")
+        
+        # Premier League (benchmark 1.00)
+        pl_gls = df_verificato[df_verificato['Comp'] == 'Premier League']['Gls'].mean()
+        pl_coeff = config.LEAGUE_COEFFICIENTS.get('Premier League', 1.0)
+        print(f"      Premier League (x{pl_coeff}): Media Gls = {pl_gls:.3f}")
+        
+        # Serie A (coefficiente ~0.85)
+        if 'Serie A' in df_verificato['Comp'].values:
+            sa_gls = df_verificato[df_verificato['Comp'] == 'Serie A']['Gls'].mean()
+            sa_coeff = config.LEAGUE_COEFFICIENTS.get('Serie A', config.DEFAULT_LEAGUE_COEFFICIENT)
+            sa_ratio = sa_gls / pl_gls if pl_gls > 0 else 0
+            print(f"      Serie A (x{sa_coeff}): Media Gls = {sa_gls:.3f} | Rapporto = {sa_ratio:.2f}")
+        
+        # Serie B (coefficiente 0.62)
+        if 'Serie B' in df_verificato['Comp'].values:
+            sb_gls = df_verificato[df_verificato['Comp'] == 'Serie B']['Gls'].mean()
+            sb_coeff = config.LEAGUE_COEFFICIENTS.get('Serie B', config.DEFAULT_LEAGUE_COEFFICIENT)
+            sb_ratio = sb_gls / pl_gls if pl_gls > 0 else 0
+            print(f"      Serie B (x{sb_coeff}): Media Gls = {sb_gls:.3f} | Rapporto = {sb_ratio:.2f}")
+            print(f"         ✓ Atteso rapporto ~{sb_coeff:.2f}, ottenuto {sb_ratio:.2f}")
+    
+    print("\n   ✓ Verifica completata. Se i rapporti corrispondono ai coefficienti, la ponderazione funziona.")

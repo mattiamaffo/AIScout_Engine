@@ -4,15 +4,15 @@ Sistema di versioning semantico: MAJOR.MINOR.PATCH
 """
 
 # Versione principale dell'applicazione
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 # Informazioni aggiuntive
 VERSION_INFO = {
-    "major": 1,
+    "major": 2,
     "minor": 0,
     "patch": 0,
-    "release_date": "2025-11-24",
-    "codename": "Initial Release"
+    "release_date": "2025-11-26",
+    "codename": "Second Release"
 }
 
 def get_version_string():

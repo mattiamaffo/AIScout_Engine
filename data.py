@@ -6,8 +6,22 @@ import math
 import numpy as np # type: ignore
 import sys
 
-# --- Configurazione Percorsi ---
-BASE_DIR = Path(__file__).resolve().parent
+# --- Funzione per gestire i percorsi sia in Dev che in .Exe ---
+def get_base_path():
+    """
+    Restituisce il percorso base corretto.
+    Se siamo in un eseguibile PyInstaller, usa sys._MEIPASS.
+    Se siamo in sviluppo locale, usa la cartella corrente del file.
+    """
+    if getattr(sys, 'frozen', False):
+        # Se siamo compilati in un .exe
+        return Path(sys._MEIPASS)
+    else:
+        # Se stiamo eseguendo lo script python normalmente
+        return Path(__file__).resolve().parent
+
+# Definisci BASE_DIR usando la funzione
+BASE_DIR = get_base_path()
 
 # --- Costanti ---
 ROWS_PER_PAGE = 7 
@@ -22,7 +36,12 @@ SORT_BY_OPTIONS = [
     {'label': 'Nazionalità (Z-A)', 'value': 'nation_desc'},
 ]
 
-DATA_PATH = BASE_DIR / 'data' / 'dataset_master_unified_2526.parquet'
+# In eseguibile, i file data sono dentro _MEIPASS/data, non fuori
+if getattr(sys, 'frozen', False):
+    DATA_PATH = BASE_DIR / 'data' / 'dataset_master_unified_2526.parquet'
+else:
+    DATA_PATH = BASE_DIR.parent / 'data' / 'dataset_master_unified_2526.parquet'
+
 ARTIFACTS_DIR = BASE_DIR / 'artifacts'
 
 # --- Variabili Globali (Inizialmente vuote per Lazy Loading) ---
@@ -36,7 +55,7 @@ def set_progress(value, message):
     global LOADING_PROGRESS, LOADING_STATUS
     LOADING_PROGRESS = value
     LOADING_STATUS = message
-    print(f"[{value}%] {message}")
+    #print(f"[{value}%] {message}")
 
 def load_data():
     """
@@ -56,7 +75,7 @@ def load_data():
         set_progress(10, "Caricamento modelli PCA...")
         PCA_DATAFRAMES = joblib.load(ARTIFACTS_DIR / 'pca_dataframes.joblib')
     except Exception as e:
-        print(f"Attenzione: Impossibile caricare pca_dataframes.joblib. {e}")
+        # print(f"Attenzione: Impossibile caricare pca_dataframes.joblib. {e}")
         PCA_DATAFRAMES = {}
 
     valid_player_ids = set()
@@ -64,7 +83,7 @@ def load_data():
         for role, df in PCA_DATAFRAMES.items():
             if isinstance(df, pd.DataFrame):
                 valid_player_ids.update(df.index.astype(str))
-    print(f"--- Trovati {len(valid_player_ids)} giocatori validi (900+ min) ---")
+    # print(f"--- Trovati {len(valid_player_ids)} giocatori validi (900+ min) ---")
 
     # 2. Carica DATABASE_DF (con Caching)
     set_progress(20, "Caricamento Database Giocatori...")
@@ -81,34 +100,29 @@ def load_data():
             cache_mtime = cache_path.stat().st_mtime
             
             if parquet_mtime > cache_mtime:
-                print("--- Cache obsoleta (dataset aggiornato). Ricaricamento... ---")
+                pass # print("--- Cache obsoleta (dataset aggiornato). Ricaricamento... ---")
             else:
                 try:
                     set_progress(25, "Trovata cache dati, caricamento veloce...")
                     DATABASE_DF = joblib.load(cache_path)
                     loaded_from_cache = True
-                    print("--- DATABASE_DF caricato dalla cache! ---")
+                    # print("--- DATABASE_DF caricato dalla cache! ---")
                 except Exception as e:
-                    print(f"Errore caricamento cache: {e}. Si procede con il caricamento standard.")
+                    pass # print(f"Errore caricamento cache: {e}. Si procede con il caricamento standard.")
         except Exception as e:
-             print(f"Errore controllo timestamp cache: {e}")
+             pass # print(f"Errore controllo timestamp cache: {e}")
 
     if not loaded_from_cache:
         set_progress(30, "Lettura file Parquet (potrebbe richiedere tempo)...")
-        if not DATA_PATH.exists():
-            print(f"ERRORE: File dataset non trovato in: {DATA_PATH}")
-            print(f"BASE_DIR attuale: {BASE_DIR}")
-            print(f"Contenuto directory BASE_DIR: {list(BASE_DIR.iterdir()) if BASE_DIR.exists() else 'Directory non esiste'}")
-            raise FileNotFoundError(f"Il file {DATA_PATH} non esiste. Assicurati che sia presente nella directory corretta.")
         DATABASE_DF = _prepare_database_dataframe(PCA_DATAFRAMES)
         
         # Salva in cache per la prossima volta
         try:
             set_progress(45, "Salvataggio cache per avvii futuri...")
             joblib.dump(DATABASE_DF, cache_path)
-            print("--- DATABASE_DF salvato in cache. ---")
+            # print("--- DATABASE_DF salvato in cache. ---")
         except Exception as e:
-            print(f"Impossibile salvare la cache: {e}")
+            pass # print(f"Impossibile salvare la cache: {e}")
     
     # 3. Carica all_roles_options
     set_progress(50, "Configurazione ruoli...")
@@ -127,7 +141,7 @@ def load_data():
             lambda row: {'label': row['label'], 'value': str(row['ID_Univoco'])},
             axis=1
         ).tolist()
-        print(f"--- Creati {len(PLAYER_SEARCH_OPTIONS)} suggerimenti di ricerca (filtrati da 900+ min) ---")
+        # print(f"--- Creati {len(PLAYER_SEARCH_OPTIONS)} suggerimenti di ricerca (filtrati da 900+ min) ---")
     else:
         PLAYER_SEARCH_OPTIONS = []
     
@@ -228,6 +242,29 @@ def _prepare_database_dataframe(pca_dataframes=None) -> pd.DataFrame:
 
     df['StyleName'] = df['StyleName'].fillna('Stile non disponibile')
     df['DisplayAge'] = df['AgeInt'].apply(lambda x: "" if pd.isna(x) else str(int(x)))
+
+    # --- LEAGUE EXCHANGE RATE ADJUSTMENT ---
+    print("\n--- Applicazione League Exchange Rate ---")
+    
+    # Mappa i coefficienti alle leghe presenti nel DataFrame
+    coefficients = df['Comp'].map(config.LEAGUE_COEFFICIENTS).fillna(config.DEFAULT_LEAGUE_COEFFICIENT)
+    
+    # Identifica colonne numeriche da ponderare (escludi metadati)
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    cols_to_adjust = [col for col in numeric_cols if col not in config.COLS_TO_EXCLUDE_FROM_ADJUSTMENT]
+    
+    print(f"   Colonne numeriche trovate: {len(numeric_cols)}")
+    print(f"   Colonne da ponderare: {len(cols_to_adjust)}")
+    
+    # Applica i coefficienti (moltiplicazione vettoriale)
+    for col in cols_to_adjust:
+        df[col] = df[col].mul(coefficients)
+    
+    print(f"   ✓ Ponderazione completata per {len(cols_to_adjust)} colonne")
+    print(f"   Esempio: Premier League x{config.LEAGUE_COEFFICIENTS['Premier League']}, "
+          f"Serie B x{config.LEAGUE_COEFFICIENTS.get('Serie B', config.DEFAULT_LEAGUE_COEFFICIENT)}")
+    
+    # --- FINE LEAGUE EXCHANGE RATE ---
 
     return df.reset_index(drop=True)
 

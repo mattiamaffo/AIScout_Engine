@@ -10,10 +10,18 @@ import plotly.graph_objects as go # type: ignore
 import sys
 import os
 from pathlib import Path
+import markdown # type: ignore
+from xhtml2pdf import pisa # type: ignore
+import io
+import json
 
 # --- Configurazione Percorsi ---
 BASE_DIR = Path(__file__).resolve().parent
-FULL_DATASET_PATH = BASE_DIR / 'data' / 'dataset_master_unified_2526.parquet'
+
+if getattr(sys, 'frozen', False):
+    FULL_DATASET_PATH = BASE_DIR / 'data' / 'dataset_master_unified_2526.parquet'
+else:
+    FULL_DATASET_PATH = BASE_DIR.parent / 'data' / 'dataset_master_unified_2526.parquet'
 
 # --- Importazione e Caricamento Dati Sincrono ---
 import data
@@ -39,7 +47,8 @@ except Exception as e:
 from layout import (
     create_main_layout, 
     search_player_layout, 
-    identikit_layout, 
+    identikit_layout,
+    ai_assistant_layout,
     database_layout
 )
 from data import (
@@ -108,18 +117,21 @@ app.layout = html.Div([
 @app.callback(
     Output('tab-content-search', 'style'),
     Output('tab-content-identikit', 'style'),
+    Output('tab-content-ai-assistant', 'style'),
     Output('tab-content-database', 'style'),
     Output('tab-search', 'className'),
     Output('tab-identikit', 'className'),
+    Output('tab-ai-assistant', 'className'),
     Output('tab-database', 'className'),
     Output('app-navbar', 'className'),
     Output('main-container', 'className'),
     Input('tab-search', 'n_clicks'),
     Input('tab-identikit', 'n_clicks'),
+    Input('tab-ai-assistant', 'n_clicks'),
     Input('tab-database', 'n_clicks'),
     prevent_initial_call='initial_duplicate'
 )
-def display_page_content(search_clicks, identikit_clicks, database_clicks):
+def display_page_content(search_clicks, identikit_clicks, ai_clicks, database_clicks):
     # Get the triggered ID
     triggered_id = dash.ctx.triggered_id 
     
@@ -128,12 +140,29 @@ def display_page_content(search_clicks, identikit_clicks, database_clicks):
         return (
             {'display': 'none'},  # search
             {'display': 'block'}, # identikit
+            {'display': 'none'},  # ai-assistant
             {'display': 'none'},  # database
             'icon-nav-item', 
-            'icon-nav-item active', 
+            'icon-nav-item active',
+            'icon-nav-item',
             'icon-nav-item', 
             'segmented-control tab-1', # Navbar class
             'layout-identikit'
+        )
+    
+    elif triggered_id == 'tab-ai-assistant':
+        # Show AI Assistant, hide others
+        return (
+            {'display': 'none'},  # search
+            {'display': 'none'},  # identikit
+            {'display': 'block'}, # ai-assistant
+            {'display': 'none'},  # database
+            'icon-nav-item',
+            'icon-nav-item',
+            'icon-nav-item active',
+            'icon-nav-item',
+            'segmented-control tab-2', # Navbar class
+            'layout-ai-assistant'
         )
     
     elif triggered_id == 'tab-database':
@@ -141,11 +170,13 @@ def display_page_content(search_clicks, identikit_clicks, database_clicks):
         return (
             {'display': 'none'},  # search
             {'display': 'none'},  # identikit
+            {'display': 'none'},  # ai-assistant
             {'display': 'block'}, # database
-            'icon-nav-item', 
-            'icon-nav-item', 
+            'icon-nav-item',
+            'icon-nav-item',
+            'icon-nav-item',
             'icon-nav-item active', 
-            'segmented-control tab-2', # Navbar class
+            'segmented-control tab-3',
             'layout-database'
         )
     
@@ -154,9 +185,11 @@ def display_page_content(search_clicks, identikit_clicks, database_clicks):
         return (
             {'display': 'block'}, # search
             {'display': 'none'},  # identikit
+            {'display': 'none'},  # ai-assistant
             {'display': 'none'},  # database
-            'icon-nav-item active', 
-            'icon-nav-item', 
+            'icon-nav-item active',
+            'icon-nav-item',
+            'icon-nav-item',
             'icon-nav-item', 
             'segmented-control tab-0', # Navbar class
             'layout-home'
@@ -166,9 +199,11 @@ def display_page_content(search_clicks, identikit_clicks, database_clicks):
     return (
         {'display': 'block'}, # search
         {'display': 'none'},  # identikit
+        {'display': 'none'},  # ai-assistant
         {'display': 'none'},  # database
-        'icon-nav-item active', 
-        'icon-nav-item', 
+        'icon-nav-item active',
+        'icon-nav-item',
+        'icon-nav-item',
         'icon-nav-item', 
         'segmented-control tab-0', # Navbar class
         'layout-home'
@@ -582,7 +617,8 @@ def run_similarity_calculation(search_data, identikit_n_clicks, pos_value, clust
             result = {
                 'target_player': player_data,
                 'target_style': source_player_style,
-                'similar_players': merged_df.to_dict('records')
+                'similar_players': merged_df.to_dict('records'
+                )
             }
             
             # Aggiungi warnings se presenti
@@ -1258,7 +1294,199 @@ def reset_dropdown_when_blank(pos_value, role_value, league_value, sort_by_value
             outputs.append(dash.no_update)
     return outputs
 
-# --- Callback 5: Aggiornamento Tabella Database (Scheda 3) ---
+# --- Callback AI 1: Inizializzazione (Startup) ---
+@app.callback(
+    Output('user-input', 'disabled', allow_duplicate=True),
+    Output('send-btn', 'disabled', allow_duplicate=True),
+    Output('chat-window', 'children', allow_duplicate=True),
+    Input('startup-interval', 'n_intervals'),
+    State('chat-history', 'data'),
+    prevent_initial_call=True
+)
+def initialize_ai_on_startup(n, chat_history):
+    """
+    Abilita la chat dopo il caricamento iniziale e ripristina la cronologia.
+    Inizializza anche il cervello AI in background.
+    """
+    # Inizializza il cervello AI (caricamento modelli, connessioni DB)
+    # Questo avverrà poco dopo il caricamento della pagina
+    try:
+        print("--- Avvio Inizializzazione AI Background ---")
+        initialize()
+    except Exception as e:
+        print(f"Errore inizializzazione AI: {e}")
+
+    # Se c'è una cronologia salvata, ripristinala
+    if chat_history and len(chat_history) > 0:
+        try:
+            restored_messages = _render_chat_messages(chat_history)
+            return False, False, restored_messages
+        except Exception as e:
+            print(f"Errore ripristino chat: {e}")
+            return False, False, dash.no_update
+            
+    return False, False, dash.no_update
+
+
+# --- Callback AI 2: Gestione Input Utente (Immediata) ---
+@app.callback(
+    Output('chat-window', 'children', allow_duplicate=True),
+    Output('chat-history', 'data', allow_duplicate=True),
+    Output('user-input', 'value'),
+    Output('user-input', 'disabled', allow_duplicate=True),
+    Output('send-btn', 'disabled', allow_duplicate=True),
+    Output('ai-request-store', 'data'),
+    Input('send-btn', 'n_clicks'),
+    Input('user-input', 'n_submit'),
+    Input('reset-chat-btn', 'n_clicks'),
+    State('user-input', 'value'),
+    State('chat-history', 'data'),
+    prevent_initial_call=True
+)
+def handle_user_input(send_clicks, input_submit, reset_clicks, user_message, chat_history):
+    """
+    Gestisce l'input dell'utente:
+    1. Mostra subito il messaggio utente.
+    2. Disabilita l'input.
+    3. Passa la richiesta allo store per l'elaborazione asincrona.
+    """
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+    
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    # --- GESTIONE RESET ---
+    if triggered_id == 'reset-chat-btn':
+        welcome_msg = html.Div(className='ai-message', children=[
+            html.Div(className='ai-message-label', children="🤖 AI Assistant"),
+            html.Div(className='ai-message-text', children="Ciao! Sono il tuo assistente tattico AIScout. Posso aiutarti a trovare giocatori simili, analizzare profili tattici e rispondere a domande sul calcio.")
+        ])
+        # Reset: Pulisci history, abilita input, pulisci store
+        return [welcome_msg], [], '', False, False, None
+
+    # --- GESTIONE INVIO ---
+    if not user_message or user_message.strip() == '':
+        raise PreventUpdate
+    
+    user_message = user_message.strip()
+    
+    if chat_history is None:
+        chat_history = []
+    
+    # Aggiungi messaggio utente alla cronologia
+    chat_history.append({
+        'role': 'user',
+        'content': user_message
+    })
+    
+    # Renderizza messaggi (incluso quello nuovo)
+    message_components = _render_chat_messages(chat_history)
+    
+    # Disabilita input e triggera AI
+    return message_components, chat_history, '', True, True, user_message
+
+
+# --- Callback AI 3: Elaborazione Risposta (Lenta) ---
+@app.callback(
+    Output('chat-window', 'children', allow_duplicate=True),
+    Output('chat-history', 'data', allow_duplicate=True),
+    Output('user-input', 'disabled', allow_duplicate=True),
+    Output('send-btn', 'disabled', allow_duplicate=True),
+    Input('ai-request-store', 'data'),
+    State('chat-history', 'data'),
+    prevent_initial_call=True
+)
+def process_ai_response(user_message_from_store, chat_history):
+    """
+    Riceve il messaggio dallo store, chiama il cervello AI e aggiorna la chat.
+    """
+    if not user_message_from_store:
+        raise PreventUpdate
+    
+    try:
+        # CHIAMATA AL CERVELLO AI (Bloccante)
+        response_payload = process_request(user_message_from_store)
+        
+        resp_type = response_payload.get('type', 'chat')
+        resp_content = response_payload.get('content', 'Nessuna risposta generata.')
+        
+        # Aggiungi risposta AI alla cronologia
+        chat_history.append({
+            'role': 'assistant',
+            'content': resp_content,
+            'type': resp_type
+        })
+        
+    except Exception as e:
+        print(f"Errore process_request: {e}")
+        chat_history.append({
+            'role': 'assistant',
+            'content': f"Si è verificato un errore: {str(e)}",
+            'type': 'error'
+        })
+
+    # Renderizza messaggi aggiornati
+    message_components = _render_chat_messages(chat_history)
+    
+    # Riabilita input
+    return message_components, chat_history, False, False
+
+
+def _render_chat_messages(chat_history):
+    """Helper per renderizzare la lista dei messaggi."""
+    message_components = []
+    
+    # Messaggio di benvenuto
+    message_components.append(
+        html.Div(className='ai-message', children=[
+            html.Div(className='ai-message-label', children="🤖 AI Assistant"),
+            html.Div(className='ai-message-text', children="Ciao! Sono il tuo assistente tattico AIScout. Posso aiutarti a trovare giocatori simili, analizzare profili tattici e rispondere a domande sul calcio.")
+        ])
+    )
+    
+    for i, msg in enumerate(chat_history):
+        if msg['role'] == 'user':
+            message_components.append(
+                html.Div(className='user-message', children=[
+                    html.Div(className='user-message-label', children="Tu"),
+                    html.Div(className='user-message-text', children=msg['content'])
+                ])
+            )
+        else:
+            msg_type = msg.get('type', 'chat')
+            content_element = None
+            
+            if msg_type == 'table':
+                content_element = dcc.Markdown(msg['content'], className='markdown-table-container')
+            elif msg_type == 'report':
+                # Aggiungi bottone download PDF per i report
+                content_element = html.Div([
+                    html.Div([
+                        html.Button(
+                            [html.I(className="fas fa-file-pdf"), " Scarica PDF"],
+                            id={'type': 'btn-download-pdf', 'index': i},
+                            className="btn-download-pdf",
+                            title="Scarica Report in PDF"
+                        )
+                    ], style={'display': 'flex', 'justifyContent': 'flex-end', 'marginBottom': '10px'}),
+                    dcc.Markdown(msg['content'])
+                ], className="ai-report-container")
+            elif msg_type == 'error':
+                content_element = html.Div(msg['content'], style={'color': 'red', 'fontWeight': 'bold'})
+            else:
+                content_element = dcc.Markdown(msg['content'])
+
+            message_components.append(
+                html.Div(className='ai-message', children=[
+                    html.Div(className='ai-message-label', children="🤖 AI Assistant"),
+                    html.Div(className='ai-message-text', children=content_element)
+                ])
+            )
+    return message_components
+
+
+# --- Callback 5: Aggiornamento Tabella Database (Scheda 4) ---
 @app.callback(
     Output('db-player-rows', 'children'),
     Output('db-page-info', 'children'),
@@ -1333,6 +1561,128 @@ def update_database_table(name_value, pos_value, role_value, age_min_value, age_
 
     return rows_children, page_info, pagination_data
 
+# --- Importazione Modulo AI ---
+try:
+    from aiscout_brain import process_request, initialize
+except ImportError:
+    print("ATTENZIONE: Impossibile importare aiscout_brain. La chat AI non funzionerà.")
+    def process_request(text):
+        return {"type": "error", "content": "Modulo AI non disponibile (ImportError)."},
+    def initialize():
+        pass
+except Exception as e:
+    print(f"ATTENZIONE: Errore nell'importazione di aiscout_brain: {e}")
+    def process_request(text):
+        return {"type": "error", "content": f"Modulo AI non disponibile: {e}"}
+    def initialize():
+        pass
+
+# Funzione per generare PDF
+def create_pdf(markdown_text):
+    """Converte testo Markdown in PDF bytes."""
+    try:
+        # Convert Markdown to HTML
+        html_text = markdown.markdown(markdown_text)
+        
+        # Add styling
+        styled_html = f"""
+        <html>
+        <head>
+        <style>
+            @page {{
+                size: A4;
+                margin: 2cm;
+            }}
+            body {{ 
+                font-family: Helvetica, sans-serif; 
+                font-size: 11pt; 
+                line-height: 1.5;
+                color: #333;
+            }}
+            h1 {{ color: #850221; font-size: 18pt; border-bottom: 2px solid #850221; padding-bottom: 10px; margin-bottom: 20px; }}
+            h2 {{ color: #850221; font-size: 14pt; margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #ccc; }}
+            h3 {{ color: #444; font-size: 12pt; margin-top: 15px; }}
+            p {{ margin-bottom: 10px; text-align: justify; }}
+            strong {{ color: #000; }}
+            ul {{ margin-bottom: 10px; }}
+            li {{ margin-bottom: 5px; }}
+            .footer {{ position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 8pt; color: #999; }}
+        </style>
+        </head>
+        <body>
+        <div class="header">
+            <h1>AIScout Report</h1>
+        </div>
+        {html_text}
+        <div class="footer">
+            Generato da AIScout AI Engine
+        </div>
+        </body>
+        </html>
+        """
+        
+        # Converti HTML to PDF
+        buffer = io.BytesIO()
+        pisa_status = pisa.CreatePDF(io.StringIO(styled_html), dest=buffer)
+        
+        if pisa_status.err:
+            print(f"Errore PDF: {pisa_status.err}")
+            return None
+        
+        return buffer.getvalue()
+    except Exception as e:
+        print(f"Eccezione generazione PDF: {e}")
+        return None
+
+# --- Callback Download PDF Report ---
+@app.callback(
+    Output("download-report-pdf", "data"),
+    Input({'type': 'btn-download-pdf', 'index': ALL}, 'n_clicks'),
+    State('chat-history', 'data'),
+    prevent_initial_call=True
+)
+def download_report_pdf(n_clicks, chat_history):
+    """
+    Gestisce il download del report in PDF.
+    """
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+    
+    # Ottieni informazioni sul trigger
+    trigger_info = ctx.triggered[0]
+    button_id_str = trigger_info['prop_id'].split('.')[0]
+    triggered_value = trigger_info['value']
+    
+    # SE IL VALORE È NONE O 0, IGNORA (È solo il rendering iniziale o l'aggiunta del bottone)
+    if not triggered_value:
+        raise PreventUpdate
+
+    try:
+        button_id = json.loads(button_id_str)
+        index = button_id['index']
+        
+        if chat_history and index < len(chat_history):
+            msg = chat_history[index]
+            if msg.get('type') == 'report':
+                pdf_bytes = create_pdf(msg['content'])
+                if pdf_bytes:
+                    # Estrai nome giocatore dal report se possibile (prima riga # REPORT: Nome)
+                    filename = "AIScout_Report.pdf"
+                    try:
+                        first_line = msg['content'].split('\n')[0]
+                        if "REPORT:" in first_line:
+                            player_name = first_line.split("REPORT:")[1].split("(")[0].strip()
+                            filename = f"Report_{player_name.replace(' ', '_')}.pdf"
+                    except:
+                        pass
+                        
+                    return dcc.send_bytes(pdf_bytes, filename)
+    except Exception as e:
+        print(f"Errore callback download PDF: {e}")
+    
+    raise PreventUpdate
+
 # 4. --- Esecuzione Server ---
 if __name__ == '__main__':
-    app.run(debug=True, port=8050)
+       app.run(debug=True, port=8050)

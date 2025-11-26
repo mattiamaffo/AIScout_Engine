@@ -2,9 +2,23 @@ from typing import List, Dict
 from pathlib import Path
 import sys
 
-# --- Configurazione Percorsi ---
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / 'data'
+# --- Funzione per gestire i percorsi sia in Dev che in .Exe ---
+def get_base_path():
+    """
+    Restituisce il percorso base corretto.
+    Se siamo in un eseguibile PyInstaller, usa sys._MEIPASS.
+    Se siamo in sviluppo locale, usa la cartella corrente del file.
+    """
+    if getattr(sys, 'frozen', False):
+        # Se siamo compilati in un .exe
+        return Path(sys._MEIPASS)
+    else:
+        # Se stiamo eseguendo lo script python normalmente
+        return Path(__file__).resolve().parent
+
+# Definisci BASE_DIR usando la funzione
+BASE_DIR = get_base_path()
+DATA_DIR = BASE_DIR.parent / 'data'
 
 # --- VARIABILI DI CONFIGURAZIONE DATI ---
 FILE_PATH: str = str(DATA_DIR / 'players_data-2024_2025.csv')
@@ -85,28 +99,28 @@ OPTIMAL_K: Dict[str, int] = {
 CLUSTER_NAMES_MAP = {
     'FW': {
         0: 'Seconda Punta',
-        1: 'Attaccante d\'Area',
-        2: 'Ala Tornante',
-        3: 'Bomber',
-        4: 'Ala d\'Attacco'
+        1: 'Attaccante di Manovra',
+        2: 'Bomber',
+        3: 'Ala d\'Attacco',
+        4: 'Attaccante d\'Area'
     },
     'MF': {
-        0: 'Regista Arretrato',
-        1: 'Centrocampista Offensivo',
-        2: 'Centrocampista di Equilibrio',
+        0: 'Centrocampista di Equilibrio',
+        1: 'Trequartista',
+        2: 'Centrocampista di quantità',
         3: 'Mediano',
         4: 'Centrocampista "Box-to-Box"',
-        5: 'Rifinitore'
+        5: 'Regista'
     },
     'DF': {
-        0: 'Difensore Centrale Impostatore',
-        1: 'Stopper',
-        2: 'Terzino Difensivo',
-        3: 'Terzino Fluidificante',
+        0: 'Terzino Difensivo',
+        1: 'Esterno a Tutta Fascia',
+        2: 'Stopper',
+        3: 'Difensore Centrale Impostatore',
     },
     'GK': {
-        0: 'Portiere "Saracinesca"',
-        1: 'Portiere "Sotto Assedio"',
+        0: 'Portiere Tradizionale',
+        1: 'Portiere Moderno',
     }
 }
 
@@ -126,3 +140,47 @@ LEAGUES_LIST: List[str] = [
     'Serie B',
     'Série A',
 ]
+
+# config.py
+
+# Coefficienti di "Difficoltà" del campionato (League Exchange Rate)
+LEAGUE_COEFFICIENTS = {
+    # --- TIER 1: L'Elite ---
+    "Premier League": 1.00,      # Benchmark assoluto
+    "La Liga": 0.95,             # Real/Barca top, ma la media è inferiore alla PL
+    "Serie A": 0.93,             # Molto tattica, difficile segnare
+    "Bundesliga": 0.90,          # Più spazi, punteggi più alti (quindi stats leggermente 'gonfiate')
+    
+    # --- TIER 2: Ottimi Campionati ---
+    "Ligue 1": 0.82,             # PSG a parte, il livello medio è sceso
+    "Primeira Liga": 0.76,       # Portogallo: Top 3 forti, il resto basso
+    "Série A": 0.75,         # Campionato più difficile fuori dall'Europa
+    "Eredivisie": 0.72,          # Olanda: Si segna tantissimo, serve un malus maggiore per gli attaccanti
+    "Championship": 0.70,        # Serie B Inglese (fisicamente durissima)
+    
+    # --- TIER 3: Campionati di Sviluppo / Tattici ---
+    "Belgian Pro League": 0.68,  # Belgio
+    "Liga Profesional Argentina": 0.66,    # Argentina (molto intensa, ma meno tecnica)
+    "Serie B": 0.62,             # Italia 2 (Tattica, difficile fare stats alte)
+    "Segunda División": 0.62,    # Spagna 2
+    "2. Bundesliga": 0.60,       # Germania 2
+    
+    # --- TIER 4: Leghe Minori / Emergenti ---
+    "Ligue 2": 0.55,             # Francia 2
+    "MLS": 0.58,                 # USA (Difese molto deboli -> stats attacco gonfiate)
+    "Liga MX": 0.55,             # Messico
+    
+    # Fallback
+    "Default": 0.50 
+}
+
+# Colonne da NON moltiplicare (Metadati o dati fisici)
+COLS_TO_EXCLUDE_FROM_ADJUSTMENT = [
+    'ID_Univoco', 'Player', 'Nation', 'Pos', 'Squad', 'Comp', 'Age', 'Born', 
+    'MP', 'Starts', 'Min', '90s', 'Leagues', 'Team', 'NationCode', 
+    'PlayerKey', 'CompKey', 'PosUpper', 'SearchName', 'StyleName', 'DisplayAge',
+    'AgeInt', 'Ht.', 'Wt.', 'Cluster', 'Rk', 'Valore_Mercato'  # Aggiungi qui altre colonne anagrafiche
+]
+
+# Coefficiente di default per leghe non mappate
+DEFAULT_LEAGUE_COEFFICIENT: float = 0.75
