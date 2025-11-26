@@ -27,21 +27,21 @@ else:
 import data
 import config
 
-print("--- Avvio Caricamento Dati Sincrono ---")
-data.load_data()
+# print("--- Avvio Caricamento Dati Sincrono ---")
+# data.load_data()
 
 # --- Inizializzazione Engine Sincrona ---
-print("--- Inizializzazione SimilarityEngine ---")
-try:
-    ARTIFACTS_DIR = BASE_DIR / 'artifacts'
-    engine = SimilarityEngine(artifacts_dir=str(ARTIFACTS_DIR))
-    engine.load_artifacts() # Sincrono
-    print("--- Motore di Similarità Caricato ---")
-    FEATURE_STATS = engine.feature_stats if hasattr(engine, 'feature_stats') else {}
-except Exception as e:
-    print(f"--- ERRORE CRITICO: Impossibile caricare il SimEngine. {e} ---")
-    engine = None
-    FEATURE_STATS = {}
+# print("--- Inizializzazione SimilarityEngine ---")
+# try:
+#     ARTIFACTS_DIR = BASE_DIR / 'artifacts'
+#     engine = SimilarityEngine(artifacts_dir=str(ARTIFACTS_DIR))
+#     engine.load_artifacts() # Sincrono
+#     print("--- Motore di Similarità Caricato ---")
+#     FEATURE_STATS = engine.feature_stats if hasattr(engine, 'feature_stats') else {}
+# except Exception as e:
+#     print(f"--- ERRORE CRITICO: Impossibile caricare il SimEngine. {e} ---")
+engine = None
+FEATURE_STATS = {}
 
 # --- Importazioni Layout (DOPO il caricamento dati) ---
 from layout import (
@@ -1294,37 +1294,55 @@ def reset_dropdown_when_blank(pos_value, role_value, league_value, sort_by_value
             outputs.append(dash.no_update)
     return outputs
 
-# --- Callback AI 1: Inizializzazione (Startup) ---
+# Variabile globale per lo stato del motore
+engine = None
+
+# ... (Layout e Callback Tab rimangono uguali) ...
+
+# --- Callback AI 1 Modificata: Caricamento Dati ---
 @app.callback(
     Output('user-input', 'disabled', allow_duplicate=True),
     Output('send-btn', 'disabled', allow_duplicate=True),
     Output('chat-window', 'children', allow_duplicate=True),
-    Input('startup-interval', 'n_intervals'),
+    Input('startup-interval', 'n_intervals'),  # Scatta dopo 1 secondo
     State('chat-history', 'data'),
     prevent_initial_call=True
 )
-def initialize_ai_on_startup(n, chat_history):
+def initialize_app_resources(n, chat_history):
     """
-    Abilita la chat dopo il caricamento iniziale e ripristina la cronologia.
-    Inizializza anche il cervello AI in background.
+    Carica i dati e l'AI DOPO che l'interfaccia è apparsa.
     """
-    # Inizializza il cervello AI (caricamento modelli, connessioni DB)
-    # Questo avverrà poco dopo il caricamento della pagina
-    try:
-        print("--- Avvio Inizializzazione AI Background ---")
-        initialize()
-    except Exception as e:
-        print(f"Errore inizializzazione AI: {e}")
-
-    # Se c'è una cronologia salvata, ripristinala
-    if chat_history and len(chat_history) > 0:
+    global engine, FEATURE_STATS
+    
+    # 1. Carica Dati (Dataframe)
+    if data.DATABASE_DF.empty:
+        print("[APP] Caricamento Dati in corso...")
+        data.load_data()
+    
+    # 2. Carica SimEngine
+    if engine is None:
+        print("[APP] Caricamento Engine in corso...")
         try:
-            restored_messages = _render_chat_messages(chat_history)
-            return False, False, restored_messages
+            from SimEngine import SimilarityEngine
+            ARTIFACTS_DIR = BASE_DIR / 'artifacts'
+            engine = SimilarityEngine(artifacts_dir=str(ARTIFACTS_DIR))
+            # Nota: _ensure_artifacts_loaded è veloce se i file sono già in cache OS
+            engine._ensure_artifacts_loaded() 
+            FEATURE_STATS = engine.feature_stats
         except Exception as e:
-            print(f"Errore ripristino chat: {e}")
-            return False, False, dash.no_update
-            
+            print(f"[APP] Errore Engine: {e}")
+
+    # 3. Inizializza AI Brain
+    try:
+        print("[APP] Inizializzazione AI Brain...")
+        initialize() # Funzione importata da aiscout_brain
+    except Exception as e:
+        print(f"[APP] Errore AI: {e}")
+
+    # Ripristina chat se presente
+    if chat_history:
+        return False, False, _render_chat_messages(chat_history)
+        
     return False, False, dash.no_update
 
 
