@@ -41,7 +41,7 @@ _router_bot = None  # <--- NUOVO
 
 def _initialize():
     """Inizializza tutti i componenti (lazy loading)."""
-    global _INITIALIZED, _sim_engine, _df_main, _tavily, _qdrant, _embedding_model, _scout_bot, _router_bot
+    global _INITIALIZED, _sim_engine, _df_main, _tavily, _qdrant, _embedding_model, _scout_bot, _router_bot, _identikit_bot
     
     if _INITIALIZED:
         return
@@ -91,21 +91,84 @@ def _initialize():
                 self.prog = dspy.ChainOfThought(ScoutingSignature)
             def forward(self, name, notes):
                 return self.prog(player_name=name, raw_notes=notes)
+
+        class IdentikitTranslatorSignature(dspy.Signature):
+            """
+            You are a Football Data Analyst. Translate the user's natural language description into statistical metrics (p90), PLAYING STYLE, and FILTERS.
+            
+            CRITICAL RULES FOR STATS (CONVERSION):
+            - The database uses PER 90 MINUTES metrics (x90).
+            - If user says ABSOLUTE numbers (e.g. "10 goals", "8 assists"), CONVERT them to p90 assuming ~20-25 full games (approx 2000 mins).
+            - Example: "10 goals" -> 10/20 = 0.5 (Set value to 0.5).
+            - Example: "5 assists" -> 5/20 = 0.25 (Set value to 0.25).
+            - If user uses Adjectives:
+            - "Good/Buono" -> 60th percentile (e.g. Gls=0.25, TklW=1.5)
+            - "High/Alto/Tanti" -> 85th percentile (e.g. Gls=0.45, TklW=2.5)
+            - "Elite/Top" -> 95th percentile (e.g. Gls=0.70)
+
+            CRITICAL RULES FOR STYLE (STRICT MAP):
+            Map the user's description to one of these specific styles ONLY if explicitly requested:
+            - FW: 'Bomber', 'Seconda Punta', 'Ala d\'Attacco', 'Attaccante di Manovra', 'Attaccante d\'Area'
+            - MF: 'Regista', 'Mediano', 'Centrocampista Box-to-Box', 'Trequartista', 'Centrocampista di Equilibrio', 'Centrocampista di Quantità'
+            - DF: 'Stopper', 'Difensore Centrale Impostatore', 'Terzino Difensivo', 'Esterno a Tutta Fascia'
+            - GK: 'Portiere Moderno', 'Portiere Tradizionale'
+            If the request is generic (e.g. "Un attaccante"), output 'None'.
+
+            CRITICAL RULES FOR FILTERS:
+            - Extract Age constraints (e.g. "Under 23" -> max_age=23).
+            - Extract League (Comp) and Nation if explicitly mentioned (e.g. "In Serie A", "Brasilian").
+            """
+            user_description = dspy.InputField(desc="User's request (e.g. 'Attaccante da 10 gol in Serie A under 21')")
+            
+            role_code = dspy.OutputField(desc="Must be one of: FW, MF, DF, GK")
+            target_style = dspy.OutputField(desc="Specific style name from the list above OR 'None'")
+            
+            # Nuovi campi per i filtri
+            min_age = dspy.OutputField(desc="Minimum age (integer) or 'None'")
+            max_age = dspy.OutputField(desc="Maximum age (integer) or 'None'")
+            league_filter = dspy.OutputField(desc="Specific league name (e.g. 'Serie A') or 'None'")
+            nation_filter = dspy.OutputField(desc="Specific nationality (e.g. 'Brazil', 'ITA') or 'None'")
+            
+            # Feature statistiche
+            feature_1_name = dspy.OutputField(desc="Name of 1st metric (e.g. Gls, Ast, TklW, Int, PrgP, xG)")
+            feature_1_value = dspy.OutputField(desc="Float value for feature 1 (converted to p90)")
+            feature_2_name = dspy.OutputField(desc="Name of 2nd metric (or 'None')")
+            feature_2_value = dspy.OutputField(desc="Float value for feature 2")
+            feature_3_name = dspy.OutputField(desc="Name of 3rd metric (or 'None')")
+            feature_3_value = dspy.OutputField(desc="Float value for feature 3")
+
+        class IdentikitBot(dspy.Module):
+            def __init__(self):
+                super().__init__()
+                self.prog = dspy.ChainOfThought(IdentikitTranslatorSignature)
+            def forward(self, description):
+                return self.prog(user_description=description)
         
-        # --- NUOVO: ROUTER INTELLIGENTE ---
+        # --- ROUTER INTELLIGENTE (Fix: Gestione Filtri) ---
         class RouterSignature(dspy.Signature):
             """
             You are an AI Orchestrator for a Football Scouting App.
             Classify the user query into a specific TOOL and extract the PLAYER NAME.
             
-            TOOLS AVAILABLE:
-            - 'SEARCH_SIMILAR': User wants to find similar players based on stats (e.g. "Who is similar to...", "Find replacement for...", "Statistical twins of...").
-            - 'GET_REPORT': User wants a detailed tactical analysis or report (e.g. "Analyze...", "Scouting report of...", "How does X play?", "Strengths of...").
-            - 'CHAT': General conversation, greetings, or questions unrelated to a specific player lookup.
+            CRITICAL RULES FOR CLASSIFICATION:
+            1. If the user mentions a specific existing player to compare (e.g. "Similar to Zirkzee"), use 'SEARCH_SIMILAR'.
+            2. If the user wants an analysis of a specific player (e.g. "Report on Zirkzee"), use 'GET_REPORT'.
+            3. If the user asks for a LIST of players based on criteria (Role, Nation, League, Age, Stats), use 'CREATE_IDENTIKIT'.
+            - Example: "French players in Serie A" -> CREATE_IDENTIKIT
+            - Example: "Young strikers" -> CREATE_IDENTIKIT
+            - Example: "Find me a defender" -> CREATE_IDENTIKIT
+            4. FOR NATION: Always convert the country name to its 3-LETTER ISO/FIFA CODE uppercase.
+                - User: "Francia" -> Output: "FRA"
+                - User: "Germany" -> Output: "GER"
+                - User: "Olanda"  -> Output: "NED"
+                - User: "Spagna"  -> Output: "ESP"
+            5. Use 'CHAT' ONLY for greetings ("Hi", "Ciao") or general questions about the AI itself. Do NOT use CHAT for player searches.
             """
             user_query = dspy.InputField()
-            tool_selected = dspy.OutputField(desc="Must be exactly one of: 'SEARCH_SIMILAR', 'GET_REPORT', 'CHAT'")
-            player_name = dspy.OutputField(desc="The name of the target player extracted from query. If CHAT, leave empty.")
+            
+            tool_selected = dspy.OutputField(desc="Must be exactly one of: 'SEARCH_SIMILAR', 'GET_REPORT', 'CREATE_IDENTIKIT', 'CHAT'")
+            player_name = dspy.OutputField(desc="The name of the target player extracted from query (for SEARCH/REPORT). Leave empty for IDENTIKIT/CHAT.")
+            nation_filter = dspy.OutputField(desc="The 3-letter uppercase Country Code (e.g. FRA, BRA, ITA).")
             chat_reply = dspy.OutputField(desc="If tool is CHAT, write a friendly reply here IN ITALIAN. Otherwise leave empty.")
 
         class RouterBot(dspy.Module):
@@ -117,6 +180,7 @@ def _initialize():
 
         _scout_bot = ScoutBot()
         _router_bot = RouterBot() # Inizializziamo il router
+        _identikit_bot = IdentikitBot()
         print("[INIT] ✓ DSPy & Router configurati (Groq)", file=sys.stderr)
 
     except Exception as e:
@@ -235,6 +299,161 @@ def ottieni_report_tattico(nome_giocatore: str) -> str:
     
     return f"FONTE: WEB + AI (Disambiguato)\n\n{final_report}"
 
+def crea_identikit_ai(descrizione_utente: str) -> str:
+    _initialize()
+    print(f"[LOG] Generazione Identikit da: '{descrizione_utente}'", file=sys.stderr)
+    
+    try:
+        # 1. TRADUZIONE AI
+        translation = _identikit_bot(description=descrizione_utente)
+        
+        role = translation.role_code
+        style_requested = translation.target_style
+        
+        # Estrazione Filtri Extra
+        filters = {}
+        try:
+            if translation.min_age and translation.min_age != 'None':
+                filters['age_min'] = int(translation.min_age)
+            if translation.max_age and translation.max_age != 'None':
+                filters['age_max'] = int(translation.max_age)
+            if translation.league_filter and translation.league_filter != 'None':
+                filters['league'] = translation.league_filter
+            if translation.nation_filter and translation.nation_filter != 'None':
+                filters['nation'] = translation.nation_filter
+        except Exception as e:
+            print(f"[WARN] Errore parsing filtri extra: {e}", file=sys.stderr)
+
+        # Estrazione Features Statistiche
+        features = {}
+        for i in range(1, 4):
+            name = getattr(translation, f"feature_{i}_name")
+            val = getattr(translation, f"feature_{i}_value")
+            if name and name != 'None' and val:
+                try:
+                    f_val = float(val)
+                    if f_val > 0: features[name] = f_val
+                except: pass
+        
+        print(f"[LOG] Target: Ruolo={role}, Stile={style_requested}, Features={features}, Filtri={filters}", file=sys.stderr)
+        
+        # --- BIVIO LOGICO ---
+        # Caso 1: Ricerca per Similarità (ci sono features o stile specifico)
+        if features or (style_requested and style_requested != 'None'):
+            print("[LOG] Modalità: SIMILARITÀ MATEMATICA", file=sys.stderr)
+            
+            cluster_id = None
+            if style_requested and style_requested != 'None':
+                cluster_id = _sim_engine._get_cluster_id_from_name(role, style_requested)
+
+            K_SEARCH_INITIAL = 100 # Cerchiamo ampio per poi filtrare
+            
+            # Se il ruolo è nullo ma ci sono features, cerchiamo in tutti i ruoli
+            if (not role or role == 'None'):
+                 print("[LOG] Ricerca su TUTTI i ruoli...", file=sys.stderr)
+                 df_res, style, _ = _sim_engine.find_similar_by_identikit_all_roles(features, k=K_SEARCH_INITIAL)
+                 msg_intro = "**Identikit Generato:** Tutti i Ruoli"
+            elif cluster_id is not None:
+                df_res, style, _ = _sim_engine.find_similar_by_identikit(role, features, k=K_SEARCH_INITIAL, requested_cluster_id=cluster_id)
+                msg_intro = f"**Identikit Generato:** {style_requested} ({role})"
+            else:
+                df_res, style, _ = _sim_engine.find_similar_by_identikit_all_clusters(role, features, k=K_SEARCH_INITIAL)
+                msg_intro = f"**Identikit Generato:** {role} (Tutti gli stili)"
+
+        # Caso 2: Ricerca Filtro Diretto (Solo Nazione/Lega/Età, nessuna feature tecnica)
+        else:
+            print("[LOG] Modalità: FILTRO DIRETTO (Query al Database)", file=sys.stderr)
+            if not filters and (not role or role == 'None'):
+                 return "Richiesta troppo vaga. Specifica almeno un ruolo, una lega, una nazione o una statistica."
+            
+            # Partiamo dal dataframe completo
+            df_res = _df_main.copy()
+            msg_intro = "**Risultati Ricerca:**"
+            
+            # Filtro Ruolo preventivo
+            if role and role != 'None':
+                df_res = df_res[df_res['Pos'].str.contains(role, na=False)]
+
+        # --- APPLICAZIONE FILTRI COMUNI (Post-Processing) ---
+        # Questa parte ora pulisce sia i risultati del SimEngine che quelli del Filtro Diretto
+        
+        # Normalizzazione colonne mancanti (per sicurezza)
+        for col in ['Age', 'Comp', 'Nation']:
+            if col not in df_res.columns and 'ID_Univoco' in df_res.columns:
+                 # Merge di recupero veloce
+                 df_res = df_res.merge(_df_main[['ID_Univoco', col]], on='ID_Univoco', how='left', suffixes=('', '_y'))
+                 if f'{col}_y' in df_res.columns:
+                     df_res[col] = df_res[f'{col}_y']
+                     df_res.drop(columns=[f'{col}_y'], inplace=True)
+
+        original_count = len(df_res)
+        
+        # Filtri Anagrafici/Geografici
+        if 'age_min' in filters:
+            df_res = df_res[pd.to_numeric(df_res['Age'], errors='coerce') >= filters['age_min']]
+        if 'age_max' in filters:
+            df_res = df_res[pd.to_numeric(df_res['Age'], errors='coerce') <= filters['age_max']]
+        if 'league' in filters:
+            df_res = df_res[df_res['Comp'].astype(str).str.contains(filters['league'], case=False, na=False)]
+        if 'nation' in filters:
+            # L'AI ci dà "FRA", "BRA", "ITA"
+            target_code = filters['nation'].strip().upper()
+            
+            print(f"[LOG] Filtro Nazione (AI): Cerco codice '{target_code}'", file=sys.stderr)
+
+            # Logica "Smart Search" sul Database
+            # Il database ha formato "fr FRA", "it ITA", "br BRA"
+            
+            mask = pd.Series([False] * len(df_res), index=df_res.index)
+            
+            # 1. Cerca nella colonna NationCode (se l'hai creata in data.py ed è pulita)
+            if 'NationCode' in df_res.columns:
+                mask |= df_res['NationCode'].astype(str).str.upper() == target_code
+            
+            # 2. Cerca nel campo completo 'Nation' (Fallback robusto)
+            # Cerca "FRA" dentro "fr FRA" -> True
+            # Cerca "FRA" dentro "France" -> False (ma l'AI ci ha dato FRA, quindi ok)
+            if 'Nation' in df_res.columns:
+                # Usiamo word boundaries (\b) per evitare che "IN" matchi "ARGENTINA"
+                # Ma per i codici 3 lettere, contains semplice è spesso sufficiente e più veloce
+                mask |= df_res['Nation'].astype(str).str.upper().str.contains(target_code, na=False)
+            
+            df_res = df_res[mask]
+
+        print(f"[LOG] Risultati dopo filtri: {original_count} -> {len(df_res)}", file=sys.stderr)
+
+        if df_res.empty:
+            return f"Nessun giocatore trovato con questi criteri. Prova ad allargare la ricerca."
+
+        # 4. FORMATTAZIONE FINALE
+        # Ordiniamo per Valore di Mercato se disponibile, altrimenti casuale o per similarità
+        if 'Similarita (Distanza)' in df_res.columns:
+             df_final = df_res.sort_values(by='Similarita (Distanza)').head(10)
+        elif 'Valore_Mercato' in df_res.columns:
+             # Se è un filtro diretto, mostriamo i più preziosi
+             # Assumendo Valore_Mercato sia pulito, altrimenti head(10) standard
+             df_final = df_res.head(10)
+        else:
+             df_final = df_res.head(10)
+        
+        cols_to_show = ['Player', 'Team', 'Comp', 'Age']
+        if 'Similarita (Distanza)' in df_final.columns: cols_to_show.append('Similarita (Distanza)')
+        if 'Valore_Mercato' in df_final.columns: cols_to_show.append('Valore_Mercato')
+        
+        cols_existing = [c for c in cols_to_show if c in df_final.columns]
+        
+        filter_desc = ", ".join([f"{k}={v}" for k,v in filters.items()])
+        result = f"{msg_intro}\n*Filtri applicati: {filter_desc}*\n\n"
+        result += df_final[cols_existing].to_markdown(index=False)
+        
+        return result
+
+    except Exception as e:
+        print(f"[ERROR] crea_identikit_ai: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return f"Errore creazione identikit: {str(e)}"
+
 # --- FUNZIONE MASTER PER LA WEB APP ---
 def process_request(user_text: str) -> dict:
     """
@@ -264,7 +483,9 @@ def process_request(user_text: str) -> dict:
                 return {"type": "chat", "content": "Di quale giocatore vuoi il report? Specifica il nome."}
             content = ottieni_report_tattico(player)
             return {"type": "report", "content": content}
-            
+        elif tool == 'CREATE_IDENTIKIT':
+            content = crea_identikit_ai(user_text)
+            return {"type": "table", "content": content}
         else: # CHAT
             return {"type": "chat", "content": decision.chat_reply or "Sono un assistente tattico, chiedimi di analizzare un giocatore o trovarne di simili!"}
             

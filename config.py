@@ -107,7 +107,7 @@ CLUSTER_NAMES_MAP = {
     'MF': {
         0: 'Centrocampista di Equilibrio',
         1: 'Trequartista',
-        2: 'Centrocampista di quantità',
+        2: 'Centrocampista di Quantità',
         3: 'Mediano',
         4: 'Centrocampista "Box-to-Box"',
         5: 'Regista'

@@ -4,14 +4,14 @@ Sistema di versioning semantico: MAJOR.MINOR.PATCH
 """
 
 # Versione principale dell'applicazione
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 # Informazioni aggiuntive
 VERSION_INFO = {
     "major": 2,
-    "minor": 0,
+    "minor": 1,
     "patch": 0,
-    "release_date": "2025-11-26",
+    "release_date": "2025-11-27",
     "codename": "Second Release"
 }
 
